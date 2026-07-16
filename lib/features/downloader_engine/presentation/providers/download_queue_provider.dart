@@ -297,6 +297,7 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
     final customOptions = <String, String>{
       '--no-playlist': '',
       '--no-mtime': '',
+      '--no-cache-dir': '',
     };
 
     // T3.3: Injeta cookies se configurado no SharedPreferences
