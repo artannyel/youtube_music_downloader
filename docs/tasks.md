@@ -13,15 +13,15 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## 🛠️ Grupo de Tarefas 0: Infraestrutura e Configuração Inicial
 *Plano de Feature:* [feature_0_infra.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_0_infra.md)
 
-- [ ] **T0.1. Adição de Dependências** `[Spec: Seção 2]`
-  - Adicionar pacotes no `pubspec.yaml` (Riverpod, GoRouter, youtube_explode_dart, extractor, isar, flutter_local_notifications, path_provider, permission_handler, shared_preferences, file_picker).
-- [ ] **T0.2. Configuração de Permissões Android** `[Spec: Seção 2]`
+- [x] **T0.1. Adição de Dependências** `[Spec: Seção 2]`
+  - Adicionar pacotes no `pubspec.yaml` (Riverpod, GoRouter, youtube_explode_dart, extractor, isar, isar_flutter_libs, flutter_local_notifications, path_provider, permission_handler, shared_preferences, file_picker).
+- [x] **T0.2. Configuração de Permissões Android** `[Spec: Seção 2]`
   - Adicionar permissões no `AndroidManifest.xml` (INTERNET, Armazenamento, Notificações, Foreground Service).
-- [ ] **T0.3. Design System & Tema Moderno** `[Spec: Seção 3 e 5]`
+- [x] **T0.3. Design System & Tema Moderno** `[Spec: Seção 3 e 5]`
   - Criar o tema escuro moderno no Flutter com paleta de cores clean.
-- [ ] **T0.4. Roteamento Declarativo com GoRouter** `[Spec: Seção 3]`
+- [x] **T0.4. Roteamento Declarativo com GoRouter** `[Spec: Seção 3]`
   - Implementar o `GoRouter` e mapear as rotas iniciais das telas (/explore, /download-setup, /downloads, /settings).
-- [ ] **T0.5. Inicialização do Banco Isar** `[Spec: Seção 5]`
+- [x] **T0.5. Inicialização do Banco Isar** `[Spec: Seção 5]`
   - Criar o serviço `IsarService` e abrir a instância do banco local para tarefas de download.
 
 ---
