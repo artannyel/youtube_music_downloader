@@ -47,4 +47,9 @@ class ExtractorService {
       );
     }
   }
+
+  /// Atualiza o binário do yt-dlp para a versão mais recente.
+  static Future<UpdateResult> update() async {
+    return await _instance.updateYoutubeDL();
+  }
 }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:youtube_music_downloader/core/database/isar_service.dart';
 import 'package:youtube_music_downloader/features/downloads_history/data/models/download_task.dart';
+import 'package:extractor/extractor.dart';
+import '../../../downloader_engine/data/services/extractor_service.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -86,6 +88,55 @@ class SettingsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _updateDownloaderEngine(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Expanded(child: Text('Buscando e aplicando atualizações no yt-dlp...')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final result = await ExtractorService.update();
+      if (context.mounted) {
+        Navigator.pop(context); // Fecha loader
+        
+        if (result.status == OperationStatus.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Motor atualizado com sucesso! Versão: ${result.version ?? "mais recente"}'),
+              backgroundColor: Colors.green.shade700,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao atualizar: ${result.errorMessage ?? "Erro desconhecido"}'),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Fecha loader
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha ao atualizar o motor: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -246,7 +297,52 @@ class SettingsPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // CARD 3: Manutenção & Reset
+                // CARD 3: Motor de Downloads (yt-dlp)
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.system_update_alt_rounded,
+                              color: theme.colorScheme.primary,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Motor de Downloads',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'O YouTube atualiza seus sistemas constantemente. Se os seus downloads começarem a falhar com erro 403 (Forbidden), atualize os componentes do yt-dlp para aplicar as correções mais recentes.',
+                          style: TextStyle(fontSize: 13, height: 1.4),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.update_rounded),
+                            label: const Text('Atualizar yt-dlp'),
+                            onPressed: () => _updateDownloaderEngine(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // CARD 4: Manutenção & Reset
                 Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Padding(
