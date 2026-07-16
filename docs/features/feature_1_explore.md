@@ -30,7 +30,7 @@ Permitir a busca de vídeos e músicas do YouTube utilizando a API pública do `
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T1.1. Criar Entidade `YoutubeVideoResult`**
+- [x] **T1.1. Criar Entidade `YoutubeVideoResult`**
   - Implementar classe em `lib/features/explore/domain/entities/youtube_video_result.dart`:
     - `id`: String (Video ID).
     - `title`: String.
@@ -38,13 +38,13 @@ Permitir a busca de vídeos e músicas do YouTube utilizando a API pública do `
     - `duration`: Duration.
     - `thumbnailUrl`: String.
     - `viewCount`: int.
-- [ ] **T1.2. Implementar `ExploreRepository` e Service**
+- [x] **T1.2. Implementar `ExploreRepository` e Service**
   - Criar `lib/features/explore/domain/repositories/explore_repository.dart` (interface).
   - Criar `lib/features/explore/data/repositories/explore_repository_impl.dart` (implementação usando `youtube_explode_dart`).
-- [ ] **T1.3. Configurar Gerenciamento de Estado Riverpod**
+- [x] **T1.3. Configurar Gerenciamento de Estado Riverpod**
   - Criar `lib/features/explore/presentation/providers/explore_provider.dart`:
     - `exploreSearchProvider` (StateNotifier ou AsyncNotifier para buscar termos e gerenciar paginação de resultados).
-- [ ] **T1.4. Desenhar Tela `ExploreScreen`**
+- [x] **T1.4. Desenhar Tela `ExploreScreen`**
   - Construir layout em `lib/features/explore/presentation/pages/explore_page.dart`:
     - Barra de busca superior moderna (limpa, com borda neon/gradiente suave).
     - Lista de resultados ou grid responsivo.

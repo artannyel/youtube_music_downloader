@@ -29,12 +29,14 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## 🔍 Grupo de Tarefas 1: Exploração e Busca (Explore)
 *Plano de Feature:* [feature_1_explore.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_1_explore.md)
 
-- [ ] **T1.1. Serviço do Youtube Explode** `[Spec: Seção 4 - Feature 1]`
-  - Criar a classe que encapsula as chamadas de busca do `youtube_explode_dart`.
-- [ ] **T1.2. Gerenciador de Estado de Busca (Explore State)** `[Spec: Seção 4 - Feature 1]`
-  - Criar o Riverpod Notifier para controlar a busca, resultados e paginação.
-- [ ] **T1.3. Interface da Tela Explore** `[Spec: Seção 5]`
-  - Implementar barra de pesquisa moderna com cards de resultados contendo título, canal, visualizações e miniatura.
+- [x] **T1.1. Criar Entidade `YoutubeVideoResult`** `[Spec: Seção 4 - Feature 1]`
+  - Implementar classe em `lib/features/explore/domain/entities/youtube_video_result.dart`.
+- [x] **T1.2. Implementar `ExploreRepository` e Service** `[Spec: Seção 4 - Feature 1]`
+  - Criar o repositório e o serviço de busca que utiliza `youtube_explode_dart`.
+- [x] **T1.3. Configurar Gerenciamento de Estado (Riverpod)** `[Spec: Seção 4 - Feature 1]`
+  - Criar o notifier para controlar buscas e resultados.
+- [x] **T1.4. Desenhar Tela `ExploreScreen`** `[Spec: Seção 5]`
+  - Implementar barra de pesquisa e grid/lista moderno de resultados.
 
 ---
 
