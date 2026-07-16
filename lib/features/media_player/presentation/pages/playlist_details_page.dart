@@ -83,6 +83,16 @@ class PlaylistDetailsPage extends ConsumerWidget {
                       Image.network(
                         thumbnailUrl,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: theme.colorScheme.primaryContainer,
+                          child: const Center(
+                            child: Icon(
+                              Icons.music_note_rounded,
+                              size: 80,
+                              color: Colors.white24,
+                            ),
+                          ),
+                        ),
                       ),
                       // Overlay escuro com gradiente
                       Container(

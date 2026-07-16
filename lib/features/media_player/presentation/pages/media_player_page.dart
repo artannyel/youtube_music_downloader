@@ -355,6 +355,12 @@ class _MediaPlayerPageState extends ConsumerState<MediaPlayerPage> {
                                   height: 80,
                                   width: 140,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: Colors.white10,
+                                    height: 80,
+                                    width: 140,
+                                    child: const Icon(Icons.music_note, color: Colors.white30),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 6),
