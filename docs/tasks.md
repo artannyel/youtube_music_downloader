@@ -51,7 +51,7 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
   - Implementar o parser para obter dados do vídeo/playlist selecionada.
 - [x] **T2.3. Validador de Diretório Existente** `[Spec: Seção 4 - R1]`
   - Criar lógica que verifica no armazenamento se a subpasta de salvamento já existe e retorna o alerta correspondente.
-- [ ] **T2.4. Interface de Setup de Mídia/Playlist** `[Spec: Seção 4 - Feature 3]`
+- [x] **T2.4. Interface de Setup de Mídia/Playlist** `[Spec: Seção 4 - Feature 3]`
   - Tela para escolher o formato (Vídeo/Áudio), qualidade desejada e campo de subpasta (pré-preenchido para playlists).
   - Exibir toast/mensagem se a pasta inserida já existir.
 
