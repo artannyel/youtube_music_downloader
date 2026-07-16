@@ -50,3 +50,8 @@ Permitir a busca de vídeos e músicas do YouTube utilizando a API pública do `
     - Lista de resultados ou grid responsivo.
     - Componentes de shimmer para feedback visual de carregamento.
     - Redirecionamento amigável para a tela de configurações de download.
+- [x] **T1.5. Paginação de Resultados (Scroll Infinito)**
+  - Atualizar repositório para expor `nextSearchPage()`.
+  - Atualizar notifier para controlar `ExploreState` paginado.
+  - Implementar `ScrollController` e indicador de carregamento inferior na UI.
+

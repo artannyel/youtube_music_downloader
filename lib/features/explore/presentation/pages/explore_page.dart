@@ -14,12 +14,28 @@ class ExplorePage extends ConsumerStatefulWidget {
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Dispara a busca da próxima página quando o usuário estiver a 200 pixels do final
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(exploreSearchProvider.notifier).loadMore();
+    }
   }
 
   void _triggerSearch() {
@@ -74,7 +90,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         child: Column(
           children: [
             const SizedBox(height: 8),
-            // Barra de Pesquisa Moderna (Glassmorphic input style)
+            // Barra de Pesquisa Moderna
             TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
@@ -95,7 +111,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     : null,
               ),
               onChanged: (text) {
-                // Atualiza o estado da tela para exibir/ocultar o botão de limpar
                 setState(() {});
               },
             ),
@@ -103,21 +118,28 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             
             // Corpo Principal da Tela
             Expanded(
-              child: searchState.when(
-                data: (results) {
-                  if (results.isEmpty) {
-                    return _buildEmptyState(theme);
-                  }
-                  return _buildResultsList(results, theme);
-                },
-                loading: () => _buildShimmerLoading(),
-                error: (error, stack) => _buildErrorState(error, theme),
-              ),
+              child: _buildBody(searchState, theme),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildBody(ExploreState state, ThemeData theme) {
+    if (state.isLoading) {
+      return _buildShimmerLoading();
+    }
+    
+    if (state.errorMessage != null && state.results.isEmpty) {
+      return _buildErrorState(state.errorMessage!, theme);
+    }
+    
+    if (state.results.isEmpty) {
+      return _buildEmptyState(theme);
+    }
+    
+    return _buildResultsList(state, theme);
   }
 
   Widget _buildEmptyState(ThemeData theme) {
@@ -150,7 +172,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  Widget _buildErrorState(Object error, ThemeData theme) {
+  Widget _buildErrorState(String error, ThemeData theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -165,7 +187,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
             const SizedBox(height: 8),
             Text(
-              error.toString().replaceAll('Exception: ', ''),
+              error,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.outline,
@@ -183,18 +205,52 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  Widget _buildResultsList(List<YoutubeVideoResult> results, ThemeData theme) {
+  Widget _buildResultsList(ExploreState state, ThemeData theme) {
+    final results = state.results;
+    
     return ListView.builder(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: results.length,
+      // Aumenta o tamanho em 1 se estiver carregando mais ou se tiver erro ao carregar mais
+      itemCount: results.length + (state.isLoadingMore || state.errorMessage != null ? 1 : 0),
       itemBuilder: (context, index) {
-        final video = results[index];
+        if (index == results.length) {
+          if (state.isLoadingMore) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.0),
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          if (state.errorMessage != null) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Column(
+                children: [
+                  Text(
+                    'Erro ao carregar mais resultados.',
+                    style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => ref.read(exploreSearchProvider.notifier).loadMore(),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Tentar carregar mais'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }
+
+        final YoutubeVideoResult video = results[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: InkWell(
             onTap: () {
-              // Navegar para o Player integrando o id da mídia
               context.push('/player?id=${video.id}');
             },
             borderRadius: BorderRadius.circular(16),
@@ -248,7 +304,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Círculo decorativo representando canal
                         CircleAvatar(
                           backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.15),
                           radius: 18,
@@ -315,7 +370,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Shimmer da Capa
                 AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Container(
