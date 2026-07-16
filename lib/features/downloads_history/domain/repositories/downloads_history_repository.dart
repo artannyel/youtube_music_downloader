@@ -31,6 +31,9 @@ abstract class DownloadsHistoryRepository {
   /// Retorna a lista de todas as tarefas de download.
   Future<List<DownloadTask>> getAllTasks();
 
+  /// Transmite a lista de todas as tarefas de download em tempo real.
+  Stream<List<DownloadTask>> watchAllTasks();
+
   /// Remove uma tarefa de download pelo ID.
   Future<void> deleteTask(int id);
 }

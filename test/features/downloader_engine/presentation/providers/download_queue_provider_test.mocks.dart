@@ -196,6 +196,16 @@ class MockDownloadsHistoryRepository extends _i1.Mock
       ) as _i4.Future<List<_i5.DownloadTask>>);
 
   @override
+  _i4.Stream<List<_i5.DownloadTask>> watchAllTasks() => (super.noSuchMethod(
+        Invocation.method(
+          #watchAllTasks,
+          [],
+        ),
+        returnValue: _i4.Stream<List<_i5.DownloadTask>>.empty(),
+        returnValueForMissingStub: _i4.Stream<List<_i5.DownloadTask>>.empty(),
+      ) as _i4.Stream<List<_i5.DownloadTask>>);
+
+  @override
   _i4.Future<void> deleteTask(int? id) => (super.noSuchMethod(
         Invocation.method(
           #deleteTask,
