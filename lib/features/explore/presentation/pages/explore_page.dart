@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../providers/explore_provider.dart';
 import '../../domain/entities/youtube_video_result.dart';
 import '../../../media_player/presentation/providers/player_provider.dart';
+import '../../../download_setup/domain/utils/youtube_url_helper.dart';
+import '../../../download_setup/domain/utils/storage_directory_helper.dart';
+import '../../../downloads_history/data/models/download_task.dart';
+import '../../../downloader_engine/presentation/providers/download_queue_provider.dart';
+import '../../../../core/database/isar_service.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
@@ -41,10 +46,37 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   void _triggerSearch() {
     final query = _searchController.text.trim();
-    if (query.isNotEmpty) {
-      _searchFocusNode.unfocus();
-      ref.read(exploreSearchProvider.notifier).search(query);
+    if (query.isEmpty) return;
+
+    _searchFocusNode.unfocus();
+
+    // 1. Verifica se são múltiplos links
+    final multipleUrls = YoutubeUrlHelper.parseMultipleUrls(query);
+    if (multipleUrls.length > 1) {
+      _showBatchDownloadBottomSheet(context, multipleUrls);
+      return;
     }
+
+    // 2. Verifica se é um único link do YouTube/YouTube Music ou ID
+    if (YoutubeUrlHelper.isValidYoutubeInput(query)) {
+      final normalUrl = YoutubeUrlHelper.convertMusicToNormalUrl(query);
+      if (YoutubeUrlHelper.isPlaylist(normalUrl)) {
+        final playlistId = YoutubeUrlHelper.extractPlaylistId(normalUrl);
+        if (playlistId != null) {
+          context.push('/playlist', extra: playlistId);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ID de Playlist inválido')),
+          );
+        }
+      } else {
+        context.push('/download-setup', extra: normalUrl);
+      }
+      return;
+    }
+
+    // 3. Caso contrário, faz pesquisa padrão por termo de busca
+    ref.read(exploreSearchProvider.notifier).search(query);
   }
 
   String _formatDuration(Duration? duration) {
@@ -85,6 +117,13 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.link, color: Colors.white),
+            tooltip: 'Colar Link(s) ou Playlist',
+            onPressed: () => _showPasteLinkDialog(context),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -165,6 +204,19 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => _showPasteLinkDialog(context),
+              icon: const Icon(Icons.link),
+              label: const Text(
+                'Colar Link de Música, Vídeo ou Playlist',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -424,6 +476,283 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _showPasteLinkDialog(BuildContext context) {
+    final TextEditingController linkController = TextEditingController();
+    String? localError;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.link, color: Colors.blueAccent),
+                  SizedBox(width: 8),
+                  Text('Colar Link(s) ou Playlist'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Cole links do YouTube ou YouTube Music abaixo. Para baixar múltiplos links em lote, separe-os por quebra de linha ou vírgula.',
+                    style: TextStyle(fontSize: 13, color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: linkController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: 'Ex:\nhttps://www.youtube.com/watch?v=...\nhttps://music.youtube.com/watch?v=...',
+                      hintStyle: const TextStyle(fontSize: 13, color: Colors.white30),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      errorText: localError,
+                    ),
+                    onChanged: (_) {
+                      if (localError != null) {
+                        setDialogState(() {
+                          localError = null;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final text = linkController.text.trim();
+                    if (text.isEmpty) {
+                      setDialogState(() {
+                        localError = 'O campo de links não pode ser vazio.';
+                      });
+                      return;
+                    }
+
+                    final parsedUrls = YoutubeUrlHelper.parseMultipleUrls(text);
+                    if (parsedUrls.isEmpty) {
+                      setDialogState(() {
+                        localError = 'Nenhum link do YouTube válido foi encontrado.';
+                      });
+                      return;
+                    }
+
+                    Navigator.pop(context);
+
+                    if (parsedUrls.length > 1) {
+                      _showBatchDownloadBottomSheet(context, parsedUrls);
+                    } else {
+                      final singleUrl = parsedUrls.first;
+                      if (YoutubeUrlHelper.isPlaylist(singleUrl)) {
+                        final playlistId = YoutubeUrlHelper.extractPlaylistId(singleUrl);
+                        if (playlistId != null) {
+                          context.push('/playlist', extra: playlistId);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('ID de Playlist inválido')),
+                          );
+                        }
+                      } else {
+                        context.push('/download-setup', extra: singleUrl);
+                      }
+                    }
+                  },
+                  child: const Text('Prosseguir'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showBatchDownloadBottomSheet(BuildContext context, List<String> urls) {
+    DownloadType selectedFormat = DownloadType.audio;
+    String selectedQuality = 'Melhor';
+    final TextEditingController subfolderController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Configurar Download em Lote',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Encontrados ${urls.length} links válidos para download.',
+                      style: const TextStyle(fontSize: 14, color: Colors.blueAccent),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Tipo de Mídia',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<DownloadType>(
+                      segments: const [
+                        ButtonSegment(
+                          value: DownloadType.video,
+                          icon: Icon(Icons.video_library),
+                          label: Text('Vídeo (MP4)'),
+                        ),
+                        ButtonSegment(
+                          value: DownloadType.audio,
+                          icon: Icon(Icons.audiotrack),
+                          label: Text('Áudio (MP3)'),
+                        ),
+                      ],
+                      selected: {selectedFormat},
+                      onSelectionChanged: (selection) {
+                        setSheetState(() {
+                          selectedFormat = selection.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Qualidade',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
+                      value: selectedQuality,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: (selectedFormat == DownloadType.video
+                              ? ['Melhor', '1080p', '720p', '480p', '360p']
+                              : ['Melhor', '320kbps', '256kbps', '192kbps', '128kbps'])
+                          .map((q) => DropdownMenuItem(value: q, child: Text(q)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() {
+                            selectedQuality = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Subpasta de Destino (Opcional)',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: subfolderController,
+                      decoration: InputDecoration(
+                        hintText: 'Ex: baixar_lote, sertanejo',
+                        prefixIcon: const Icon(Icons.folder_open),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(context); // Fecha Bottom Sheet
+                        
+                        try {
+                          final targetDir = await StorageDirectoryHelper.getTargetDirectoryPath(
+                            subfolder: subfolderController.text.trim(),
+                            isAudio: selectedFormat == DownloadType.audio,
+                          );
+
+                          final isar = IsarService.instance;
+
+                          await isar.writeTxn(() async {
+                            for (var url in urls) {
+                              final videoId = YoutubeUrlHelper.extractVideoId(url) ?? 'Video';
+                              final task = DownloadTask()
+                                ..youtubeId = videoId
+                                ..title = 'Fila em lote: $videoId'
+                                ..url = url
+                                ..type = selectedFormat
+                                ..requestedQuality = selectedQuality
+                                ..actualQuality = ''
+                                ..targetPath = '$targetDir/${videoId}_batch.${selectedFormat == DownloadType.audio ? "mp3" : "mp4"}'
+                                ..progress = 0.0
+                                ..downloadSpeed = '0 KB/s'
+                                ..eta = ''
+                                ..status = DownloadStatus.pending
+                                ..createdAt = DateTime.now();
+
+                              await isar.downloadTasks.put(task);
+                            }
+                          });
+
+                          ref.read(downloadQueueProvider.notifier).startProcessing();
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${urls.length} vídeos adicionados à fila de downloads!'),
+                                backgroundColor: Colors.green.shade700,
+                              ),
+                            );
+                            context.go('/downloads');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Erro ao enfileirar lote: $e'),
+                                backgroundColor: Colors.red.shade700,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text(
+                        'Iniciar Download em Lote',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
