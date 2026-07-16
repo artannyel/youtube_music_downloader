@@ -297,7 +297,6 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
     final customOptions = <String, String>{
       '--no-playlist': '',
       '--no-mtime': '',
-      '--downloader': 'libaria2c.so', // Aria2c para downloads mais rápidos
     };
 
     // T3.3: Injeta cookies se configurado no SharedPreferences

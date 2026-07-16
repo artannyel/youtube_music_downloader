@@ -32,7 +32,7 @@ class ExtractorService {
 
     final result = await _instance.initialize(
       enableFFmpeg: true,
-      enableAria2c: true,
+      enableAria2c: false,
     );
 
     if (result.success) {
