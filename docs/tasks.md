@@ -100,9 +100,9 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## ⚙️ Grupo de Tarefas 6: Tela de Ajustes (Settings)
 *Plano de Feature:* [feature_6_settings.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_6_settings.md)
 
-- [ ] **T6.1. Seletor de Arquivos para Cookies** `[Spec: Seção 4 - R5]`
+- [x] **T6.1. Seletor de Arquivos para Cookies** `[Spec: Seção 4 - R5]`
   - Interface para importar o arquivo de cookies usando `file_picker` e salvar seu path.
-- [ ] **T6.2. Configuração de Diretório Base** `[Spec: Seção 4 - R1]`
+- [x] **T6.2. Configuração de Diretório Base** `[Spec: Seção 4 - R1]`
   - Interface para visualizar o diretório de downloads padrão ou alterá-lo.
 
 ---
