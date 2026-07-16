@@ -35,14 +35,17 @@ Permitir que o usuário insira um link direto de vídeo/áudio ou playlist, faç
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T2.1. Criar Utilitário de Normalização de URLs**
-  - Implementar em `lib/core/utils/url_parser.dart` uma função estática:
-    - `String normalizeYoutubeUrl(String url)`: Substitui `music.youtube.com` por `youtube.com`.
-- [ ] **T2.2. Implementar Serviço de Carregamento de Metadados**
+- [x] **T2.1. Criar Utilitário de Normalização de URLs**
+  - Implementar em `lib/features/download_setup/domain/utils/youtube_url_helper.dart` a classe `YoutubeUrlHelper`:
+    - `convertMusicToNormalUrl(url)`: Substitui `music.youtube.com` por `youtube.com`.
+    - `isValidYoutubeInput(input)`: Valida links e IDs do YouTube.
+    - `extractVideoId(input)` e `extractPlaylistId(input)`: Extrai IDs de vídeos e playlists.
+    - `parseMultipleUrls(input)`: Parse e limpeza de URLs em lote.
+- [x] **T2.2. Implementar Serviço de Carregamento de Metadados**
   - Criar interface `DownloadSetupRepository` e sua implementação para:
     - `Future<MediaMetadata> fetchMetadata(String url)`: Obtém título, miniatura, duração e lista de qualidades de streams de vídeo/áudio.
     - Suportar detecção e parsing de playlists completas.
-- [ ] **T2.3. Implementar Verificação de Existência de Diretórios**
+- [x] **T2.3. Implementar Verificação de Existência de Diretórios**
   - Criar utilitário `StorageDirectoryHelper` para verificar a pasta padrão:
     - Se a pasta do subdiretório existir (usando `Directory(path).existsSync()`), retornar `true` para disparar o aviso visual na tela de configuração.
 - [ ] **T2.4. Desenhar Tela `DownloadSetupScreen`**

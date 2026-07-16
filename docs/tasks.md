@@ -45,11 +45,11 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## ⚙️ Grupo de Tarefas 2: Tela de Configuração de Download (Download Setup)
 *Plano de Feature:* [feature_2_download_setup.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_2_download_setup.md)
 
-- [ ] **T2.1. Conversor de URL de Música** `[Spec: Seção 4 - R2]`
+- [x] **T2.1. Conversor de URL de Música** `[Spec: Seção 4 - R2]`
   - Criar validador e reescritor de URLs do YouTube Music (`music.youtube.com` -> `youtube.com`).
-- [ ] **T2.2. Parser de Metadados e Streams** `[Spec: Seção 4 - Feature 2]`
+- [x] **T2.2. Parser de Metadados e Streams** `[Spec: Seção 4 - Feature 2]`
   - Implementar o parser para obter dados do vídeo/playlist selecionada.
-- [ ] **T2.3. Validador de Diretório Existente** `[Spec: Seção 4 - R1]`
+- [x] **T2.3. Validador de Diretório Existente** `[Spec: Seção 4 - R1]`
   - Criar lógica que verifica no armazenamento se a subpasta de salvamento já existe e retorna o alerta correspondente.
 - [ ] **T2.4. Interface de Setup de Mídia/Playlist** `[Spec: Seção 4 - Feature 3]`
   - Tela para escolher o formato (Vídeo/Áudio), qualidade desejada e campo de subpasta (pré-preenchido para playlists).

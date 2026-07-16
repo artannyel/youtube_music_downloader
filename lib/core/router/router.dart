@@ -42,7 +42,10 @@ class AppRouter {
         GoRoute(
           parentNavigatorKey: _rootNavigatorKey,
           path: '/download-setup',
-          builder: (context, state) => const DownloadSetupPage(),
+          builder: (context, state) {
+            final url = state.extra as String?;
+            return DownloadSetupPage(initialUrl: url ?? '');
+          },
         ),
         GoRoute(
           parentNavigatorKey: _rootNavigatorKey,
