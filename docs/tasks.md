@@ -60,15 +60,15 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## 🚀 Grupo de Tarefas 3: Motor de Downloads e Cookies (Downloader Engine)
 *Plano de Feature:* [feature_3_downloader_engine.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_3_downloader_engine.md)
 
-- [ ] **T3.1. Inicialização do Extractor (yt-dlp)** `[Spec: Seção 2 e 4 - Feature 3]`
+- [x] **T3.1. Inicialização do Extractor (yt-dlp)** `[Spec: Seção 2 e 4 - Feature 3]`
   - Configurar e instanciar o `YoutubeDLFlutter` na inicialização do app.
-- [ ] **T3.2. Integração com Persistência de Cookies** `[Spec: Seção 4 - R5]`
+- [x] **T3.2. Integração com Persistência de Cookies** `[Spec: Seção 4 - R5]`
   - Implementar injeção automática do arquivo de cookies `--cookies` nos parâmetros do `extractor` se o arquivo estiver configurado.
-- [ ] **T3.3. Algoritmo de Fallback de Qualidade** `[Spec: Seção 4 - R3]`
+- [x] **T3.3. Algoritmo de Fallback de Qualidade** `[Spec: Seção 4 - R3]`
   - Escrever o algoritmo que compara a qualidade selecionada com as qualidades disponíveis e escolhe o fallback mais próximo.
-- [ ] **T3.4. Processador de Downloads Concorrentes** `[Spec: Seção 4 - Feature 4]`
+- [x] **T3.4. Processador de Downloads Concorrentes** `[Spec: Seção 4 - Feature 4]`
   - Criar o gerenciador da fila de downloads integrando progressos em tempo real com o motor.
-- [ ] **T3.5. Embutir Capa (Thumbnail) nas Músicas** `[Spec: Seção 4 - R6]`
+- [x] **T3.5. Embutir Capa (Thumbnail) nas Músicas** `[Spec: Seção 4 - R6]`
   - Passar as flags correspondentes no `DownloadRequest` para embutir a miniatura como artwork do áudio.
 
 ---
