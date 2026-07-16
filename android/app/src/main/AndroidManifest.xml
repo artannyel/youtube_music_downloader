@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="youtube_music_downloader"
+        android:label="Youtube Music/Video Downloader"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
