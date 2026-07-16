@@ -76,11 +76,11 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## 🔔 Grupo de Tarefas 4: Sincronização de Notificações com Ações (Notifications)
 *Plano de Feature:* [feature_4_notifications.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_4_notifications.md)
 
-- [ ] **T4.1. Configuração do Canal de Notificações do Android** `[Spec: Seção 4 - R4]`
+- [x] **T4.1. Configuração do Canal de Notificações do Android** `[Spec: Seção 4 - R4]`
   - Registrar canal no sistema com suporte a progresso e botões.
-- [ ] **T4.2. Notificação de Progresso Ativo** `[Spec: Seção 4 - R4]`
+- [x] **T4.2. Notificação de Progresso Ativo** `[Spec: Seção 4 - R4]`
   - Integrar a atualização em tempo real do download com a barra de progresso da notificação.
-- [ ] **T4.3. Botões Interativos (Cancelar/Pausar)** `[Spec: Seção 4 - R4]`
+- [x] **T4.3. Botões Interativos (Cancelar/Pausar)** `[Spec: Seção 4 - R4]`
   - Adicionar as ações interativas de controle na bandeja de notificação.
 
 ---

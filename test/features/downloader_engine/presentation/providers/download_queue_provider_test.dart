@@ -8,6 +8,7 @@ import 'package:youtube_music_downloader/features/downloader_engine/presentation
 import 'package:youtube_music_downloader/features/downloads_history/data/models/download_task.dart';
 import 'package:youtube_music_downloader/features/downloads_history/domain/repositories/downloads_history_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 import 'download_queue_provider_test.mocks.dart';
 
@@ -35,6 +36,27 @@ void main() {
   late Directory tempDir;
 
   setUp(() async {
+    const MethodChannel channel = MethodChannel('dexterous.com/flutter/local_notifications');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      if (methodCall.method == 'initialize') {
+        return true;
+      }
+      return null;
+    });
+
+    const MethodChannel permissionChannel = MethodChannel('flutter.baseflow.com/permissions/methods');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(permissionChannel, (MethodCall methodCall) async {
+      if (methodCall.method == 'checkPermissionStatus') {
+        return 1; // PermissionStatus.granted
+      }
+      if (methodCall.method == 'requestPermission') {
+        return {methodCall.arguments: 1};
+      }
+      return null;
+    });
+
     SharedPreferences.setMockInitialValues({});
     tempDir = await Directory.systemTemp.createTemp('download_queue_test_');
     mockRepository = MockDownloadsHistoryRepository();
