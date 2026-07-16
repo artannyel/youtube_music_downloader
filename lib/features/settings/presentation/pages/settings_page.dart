@@ -108,7 +108,11 @@ class SettingsPage extends ConsumerWidget {
     try {
       final result = await ExtractorService.update();
       if (context.mounted) {
-        Navigator.pop(context); // Fecha loader
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop(); // Fecha loader
+          }
+        });
         
         if (result.status == OperationStatus.success) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -128,7 +132,11 @@ class SettingsPage extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Fecha loader
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop(); // Fecha loader
+          }
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Falha ao atualizar o motor: $e'),
