@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:extractor/extractor.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/notification/notification_service.dart';
 import '../../../downloads_history/data/models/download_task.dart';
 import '../../../downloads_history/domain/repositories/downloads_history_repository.dart';
 import '../../../downloads_history/data/repositories/downloads_history_repository_impl.dart';
@@ -26,6 +27,7 @@ class DownloadTaskSnapshot {
   final String eta;
   final DownloadStatus status;
   final String? errorMessage;
+  final bool isAudio;
 
   const DownloadTaskSnapshot({
     required this.taskId,
@@ -36,6 +38,7 @@ class DownloadTaskSnapshot {
     required this.eta,
     required this.status,
     this.errorMessage,
+    required this.isAudio,
   });
 
   DownloadTaskSnapshot copyWith({
@@ -44,6 +47,7 @@ class DownloadTaskSnapshot {
     String? eta,
     DownloadStatus? status,
     String? errorMessage,
+    bool? isAudio,
   }) {
     return DownloadTaskSnapshot(
       taskId: taskId,
@@ -54,6 +58,7 @@ class DownloadTaskSnapshot {
       eta: eta ?? this.eta,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
+      isAudio: isAudio ?? this.isAudio,
     );
   }
 }
@@ -148,6 +153,17 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       taskSnapshots: {...state.taskSnapshots, taskId: updated},
     );
 
+    // Mostra/Atualiza a notificação de progresso ativa no Android
+    NotificationService.showProgressNotification(
+      taskId: taskId,
+      title: existing.title,
+      progress: percent,
+      speed: '',
+      eta: etaStr,
+      processId: _currentProcessId!,
+      isAudio: existing.isAudio,
+    );
+
     // Persiste no Isar a cada ~5% para não sobrecarregar o banco
     if (percent > 0 && (percent % 5).round() == 0) {
       _repository.updateTaskProgress(
@@ -219,6 +235,7 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       speed: '',
       eta: '',
       status: DownloadStatus.downloading,
+      isAudio: nextTask.type == DownloadType.audio,
     );
 
     state = state.copyWith(
@@ -335,6 +352,9 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       targetPath: outputPath,
     );
 
+    // Cancela a notificação ativa da bandeja de notificações
+    NotificationService.cancelNotification(task.id);
+
     final updated = state.taskSnapshots[task.id]?.copyWith(
       progress: 100.0,
       status: DownloadStatus.completed,
@@ -359,6 +379,9 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       DownloadStatus.failed,
       errorMessage: errorMessage,
     );
+
+    // Cancela a notificação ativa da bandeja de notificações
+    NotificationService.cancelNotification(task.id);
 
     final updated = state.taskSnapshots[task.id]?.copyWith(
       status: DownloadStatus.failed,
@@ -387,6 +410,9 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       DownloadStatus.failed,
       errorMessage: 'Download cancelado pelo usuário',
     );
+
+    // Cancela a notificação ativa da bandeja de notificações
+    NotificationService.cancelNotification(taskId);
 
     final updated = state.taskSnapshots[taskId]?.copyWith(
       status: DownloadStatus.failed,

@@ -29,17 +29,17 @@ Exibir na barra de notificações do Android o progresso de cada download em exe
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T4.1. Configurar Inicialização do Flutter Local Notifications**
+- [x] **T4.1. Configurar Inicialização do Flutter Local Notifications**
   - Implementar classe de serviço `NotificationService` em `lib/core/notification/notification_service.dart`.
   - Inicializar configurações para Android e criar canal de notificação persistente com a flag `showProgress: true` ativada.
-- [ ] **T4.2. Implementar Sincronizador de Progresso**
+- [x] **T4.2. Implementar Sincronizador de Progresso**
   - Criar um método `updateDownloadProgressNotification(DownloadTask task)`:
     - Atualizar o progresso (`maxProgress: 100`, `progress: task.progress`).
     - Configurar título com o nome do vídeo e descrição com a velocidade (ex: `1.2 MB/s - ETA: 00:32`).
-- [ ] **T4.3. Implementar Ações de Clique em Notificações (Pausar/Cancelar)**
+- [x] **T4.3. Implementar Ações de Clique em Notificações (Pausar/Cancelar)**
   - Configurar callback global em `NotificationService` para capturar os botões de ação:
     - `actionId == 'cancel_download'`: Disparar evento para cancelar a tarefa de download no motor e atualizar banco Isar.
     - `actionId == 'pause_download'`: Disparar evento para pausar a tarefa.
   - Vincular os botões de ação aos detalhes da notificação no Android (`AndroidNotificationDetails`).
-- [ ] **T4.4. Teste de Permissão e Exibição de Notificação**
+- [x] **T4.4. Teste de Permissão e Exibição de Notificação**
   - Solicitar a permissão de notificações em tempo de execução no Android 13+ usando `permission_handler`.
