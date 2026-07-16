@@ -37,6 +37,8 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
   - Criar o notifier para controlar buscas e resultados.
 - [x] **T1.4. Desenhar Tela `ExploreScreen`** `[Spec: Seção 5]`
   - Implementar barra de pesquisa e grid/lista moderno de resultados.
+- [x] **T1.5. Paginação de Resultados (Scroll Infinito)** `[Spec: Seção 4 - Feature 1]`
+  - Implementar scroll infinito com `ScrollController` e método de carregamento da próxima página no repositório e notifier.
 
 ---
 
