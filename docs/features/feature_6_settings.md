@@ -31,15 +31,15 @@ Oferecer uma interface limpa e intuitiva para gerenciar as configurações persi
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T6.1. Criar Repositório de Configurações (`SettingsRepository`)**
+- [x] **T6.1. Criar Repositório de Configurações (`SettingsRepository`)**
   - Implementar em `lib/features/settings/data/repositories/settings_repository_impl.dart`:
     - `Future<void> setCookiesPath(String path)`: Salva o path no SharedPreferences.
     - `Future<String?> getCookiesPath()`: Recupera o path do SharedPreferences.
     - `Future<void> clearCookies()`: Remove a chave do SharedPreferences.
-- [ ] **T6.2. Implementar Provedor Riverpod de Ajustes**
+- [x] **T6.2. Implementar Provedor Riverpod de Ajustes**
   - Criar `lib/features/settings/presentation/providers/settings_provider.dart`:
     - `settingsStateProvider` (gerencia o estado atual das configurações e notifica a tela em caso de alterações).
-- [ ] **T6.3. Desenhar Tela `SettingsScreen`**
+- [x] **T6.3. Desenhar Tela `SettingsScreen`**
   - Implementar em `lib/features/settings/presentation/pages/settings_page.dart`:
     - Seção de cookies com indicação visual de status (ícone verde de ativo se configurado, vermelho se inativo).
     - Integração com `file_picker` ao pressionar o botão de importação.
