@@ -4,6 +4,7 @@ import '../../domain/repositories/download_setup_repository.dart';
 import '../../domain/entities/media_metadata.dart';
 import '../../domain/utils/storage_directory_helper.dart';
 import '../../../downloads_history/data/models/download_task.dart';
+import '../../../downloader_engine/presentation/providers/download_queue_provider.dart';
 import '../../../explore/presentation/providers/explore_provider.dart';
 import '../../../../core/database/isar_service.dart';
 
@@ -66,8 +67,9 @@ class DownloadSetupState {
 // Notifier para o gerenciamento de estado do Download Setup
 class DownloadSetupNotifier extends StateNotifier<DownloadSetupState> {
   final DownloadSetupRepository _repository;
+  final Ref _ref;
 
-  DownloadSetupNotifier(this._repository) : super(const DownloadSetupState.initial());
+  DownloadSetupNotifier(this._repository, this._ref) : super(const DownloadSetupState.initial());
 
   /// Carrega os metadados do link informado e define as qualidades padrão
   Future<void> loadMetadata(String url) async {
@@ -201,6 +203,9 @@ class DownloadSetupNotifier extends StateNotifier<DownloadSetupState> {
         await isar.downloadTasks.put(task);
       });
     }
+
+    // Dispara o motor de downloads para processar as tarefas enfileiradas
+    _ref.read(downloadQueueProvider.notifier).startProcessing();
   }
 
   String _sanitizeFolderName(String name) {
@@ -219,5 +224,5 @@ class DownloadSetupNotifier extends StateNotifier<DownloadSetupState> {
 // Provider global para acessar o gerenciamento de estado do Download Setup
 final downloadSetupProvider = StateNotifierProvider.autoDispose<DownloadSetupNotifier, DownloadSetupState>((ref) {
   final repository = ref.watch(downloadSetupRepositoryProvider);
-  return DownloadSetupNotifier(repository);
+  return DownloadSetupNotifier(repository, ref);
 });

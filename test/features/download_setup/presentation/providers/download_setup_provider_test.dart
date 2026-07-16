@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -34,6 +35,7 @@ void main() {
   late DownloadSetupNotifier notifier;
   late Directory tempDir;
   late PathProviderPlatform originalPlatform;
+  late ProviderContainer container;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('setup_provider_test_');
@@ -41,10 +43,19 @@ void main() {
     PathProviderPlatform.instance = FakePathProviderPlatform(tempDir.path);
 
     mockRepository = MockDownloadSetupRepository();
-    notifier = DownloadSetupNotifier(mockRepository);
+
+    container = ProviderContainer(
+      overrides: [
+        downloadSetupRepositoryProvider.overrideWithValue(mockRepository),
+      ],
+    );
+
+    container.listen(downloadSetupProvider, (previous, next) {});
+    notifier = container.read(downloadSetupProvider.notifier);
   });
 
   tearDown(() async {
+    container.dispose();
     PathProviderPlatform.instance = originalPlatform;
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);

@@ -31,23 +31,23 @@ Integrar o pacote `extractor` para executar o download físico do YouTube de for
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T3.1. Inicializar o YoutubeDLFlutter**
+- [x] **T3.1. Inicializar o YoutubeDLFlutter**
   - Implementar chamada em `main.dart` para configurar o `extractor`:
     ```dart
     final youtubeDL = YoutubeDLFlutter.instance;
     await youtubeDL.initialize(enableFFmpeg: true, enableAria2c: true);
     ```
-- [ ] **T3.2. Implementar Algoritmo de Fallback de Qualidade**
+- [x] **T3.2. Implementar Algoritmo de Fallback de Qualidade**
   - Criar classe de utilitários `QualityMatcher`:
     - Filtrar resoluções de vídeos (ex: se pediu `1080p` mas o vídeo tem no máximo `720p`, selecionar `720p`).
     - Comparar taxas de áudio (ex: se pediu `320kbps` mas o máximo é `192kbps`, selecionar `192kbps`).
-- [ ] **T3.3. Injetar Cookies na Execução do Extractor**
+- [x] **T3.3. Injetar Cookies na Execução do Extractor**
   - No repositório de download, resgatar o caminho persistido do arquivo de cookies do `SharedPreferences`.
   - Se o caminho do arquivo for válido e o arquivo existir, anexar a flag correspondente na inicialização da classe `DownloadRequest` do `extractor`.
-- [ ] **T3.4. Criar Gerenciador de Downloads (`DownloadQueueManager`)**
+- [x] **T3.4. Criar Gerenciador de Downloads (`DownloadQueueManager`)**
   - Implementar Riverpod `StateNotifier` ou `Notifier` em `lib/features/downloader_engine/presentation/providers/download_queue_provider.dart`:
     - Monitorar eventos do Stream de progresso do `extractor` (velocidade, porcentagem, ETA).
     - Atualizar o estado da tarefa em tempo real no banco Isar e propagar as atualizações de interface.
-- [ ] **T3.5. Embutir Capa (Thumbnail) nas Músicas**
+- [x] **T3.5. Embutir Capa (Thumbnail) nas Músicas**
   - Configurar as opções de linha de comando no `DownloadRequest` para injetar a thumbnail como capa do arquivo (Artwork) quando o tipo de download for `audio`.
   - Garantir que a integração do `extractor` e `FFmpeg` trate a junção e remoção dos arquivos de imagem temporários criados no processo.
