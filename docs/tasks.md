@@ -88,11 +88,11 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## 🗄️ Grupo de Tarefas 5: Banco de Dados & Histórico (Downloads History)
 *Plano de Feature:* [feature_5_downloads_history.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_5_downloads_history.md)
 
-- [ ] **T5.1. Repositório Isar para Downloads** `[Spec: Seção 5]`
+- [x] **T5.1. Repositório Isar para Downloads** `[Spec: Seção 5]`
   - Implementar operações de salvar, ler, deletar e atualizar `DownloadTask`.
-- [ ] **T5.2. Tela de Lista de Downloads** `[Spec: Seção 4 - Feature 4]`
+- [x] **T5.2. Tela de Lista de Downloads** `[Spec: Seção 4 - Feature 4]`
   - Construir interface com abas ("Em Progresso" / "Concluídos").
-- [ ] **T5.3. Interação com Arquivos Locais** `[Spec: Seção 4 - Feature 4]`
+- [x] **T5.3. Interação com Arquivos Locais** `[Spec: Seção 4 - Feature 4]`
   - Permitir que o usuário abra o arquivo baixado ou explore a pasta pelo aplicativo.
 
 ---

@@ -76,6 +76,11 @@ class DownloadsHistoryRepositoryImpl implements DownloadsHistoryRepository {
   }
 
   @override
+  Stream<List<DownloadTask>> watchAllTasks() {
+    return _isar.downloadTasks.where().sortByCreatedAtDesc().watch(fireImmediately: true);
+  }
+
+  @override
   Future<void> deleteTask(int id) async {
     await _isar.writeTxn(() async {
       await _isar.downloadTasks.delete(id);
