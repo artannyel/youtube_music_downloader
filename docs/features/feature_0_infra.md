@@ -31,13 +31,14 @@ Configurar o ambiente de desenvolvimento, habilitar permissões de sistema neces
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T0.1. Ajuste do pubspec.yaml**
+- [x] **T0.1. Ajuste do pubspec.yaml**
   - Adicionar as seguintes dependências em `dependencies`:
     - `flutter_riverpod: ^2.5.1`
     - `go_router: ^14.2.0`
     - `youtube_explode_dart: ^2.2.2`
     - `extractor: ^1.0.0`
     - `isar: ^3.1.0`
+    - `isar_flutter_libs: ^3.1.0`
     - `flutter_local_notifications: ^17.1.2`
     - `path_provider: ^2.1.3`
     - `permission_handler: ^11.3.1`
@@ -51,7 +52,7 @@ Configurar o ambiente de desenvolvimento, habilitar permissões de sistema neces
     - `isar_generator: ^3.1.0`
     - `build_runner: ^2.4.9`
   - Executar `flutter pub get`.
-- [ ] **T0.2. Permissões Android (`AndroidManifest.xml`)**
+- [x] **T0.2. Permissões Android (`AndroidManifest.xml`)**
   - Adicionar no arquivo `android/app/src/main/AndroidManifest.xml` dentro da tag `<manifest>`:
     ```xml
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -64,13 +65,13 @@ Configurar o ambiente de desenvolvimento, habilitar permissões de sistema neces
     ```xml
     android:extractNativeLibs="true"
     ```
-- [ ] **T0.3. Implementar Tema Moderno (`lib/core/theme/theme.dart`)**
+- [x] **T0.3. Implementar Tema Moderno (`lib/core/theme/theme.dart`)**
   - Criar classe `AppTheme` definindo `ColorScheme.dark` utilizando as cores padrão:
     - Primary: `#FF0000`
     - Secondary: `#38BDF8`
     - Tertiary: `#22C55E`
     - Neutral: `#94A3B8`
-- [ ] **T0.4. Implementar GoRouter (`lib/core/router/router.dart`)**
+- [x] **T0.4. Implementar GoRouter (`lib/core/router/router.dart`)**
   - Configurar `GoRouter` definindo rotas para:
     - `/explore` (Página inicial de busca).
     - `/download-setup` (Configurações de formatos de áudio/vídeo).
@@ -78,5 +79,5 @@ Configurar o ambiente de desenvolvimento, habilitar permissões de sistema neces
     - `/settings` (Configurações de cookies e diretórios).
     - `/player` (Reprodução de mídia integrada online e offline).
     - `/playlist` (Visualização detalhada de playlists e lotes de URLs).
-- [ ] **T0.5. Configurar Isar Database (`lib/core/database/isar_service.dart`)**
+- [x] **T0.5. Configurar Isar Database (`lib/core/database/isar_service.dart`)**
   - Implementar classe `IsarService` que inicializa o banco Isar e gerencia a criação de instâncias para a coleção `DownloadTask`.
