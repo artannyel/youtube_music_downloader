@@ -55,7 +55,10 @@ class AppRouter {
         GoRoute(
           parentNavigatorKey: _rootNavigatorKey,
           path: '/playlist',
-          builder: (context, state) => const PlaylistDetailsPage(),
+          builder: (context, state) {
+            final playlistId = state.extra as String?;
+            return PlaylistDetailsPage(playlistId: playlistId ?? '');
+          },
         ),
       ],
     );

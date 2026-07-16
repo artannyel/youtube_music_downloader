@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/explore_provider.dart';
 import '../../domain/entities/youtube_video_result.dart';
+import '../../../media_player/presentation/providers/player_provider.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
@@ -251,7 +252,18 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           padding: const EdgeInsets.only(bottom: 16.0),
           child: InkWell(
             onTap: () {
-              context.push('/player?id=${video.id}');
+              ref.read(playerProvider.notifier).loadMedia(
+                PlayerMediaItem(
+                  id: video.id,
+                  title: video.title,
+                  artist: video.author,
+                  thumbnailUrl: video.thumbnailUrl,
+                  url: 'https://youtube.com/watch?v=${video.id}',
+                ),
+                source: PlaybackSource.online,
+                mediaType: PlaybackMediaType.video,
+              );
+              context.push('/player');
             },
             borderRadius: BorderRadius.circular(16),
             child: Card(

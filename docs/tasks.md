@@ -110,11 +110,11 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
 ## 🎵 Grupo de Tarefas 7: Player de Mídia Integrado (Media Player)
 *Plano de Feature:* [feature_7_media_player.md](file:///home/artannyel/Documentos/Projetos/youtube_music_downloader/docs/features/feature_7_media_player.md)
 
-- [ ] **T7.1. Controladores e Estado de Reprodução (Riverpod)** `[Spec: Seção 4 - R7]`
+- [x] **T7.1. Controladores e Estado de Reprodução (Riverpod)** `[Spec: Seção 4 - R7]`
   - Desenvolver o gerenciador do player (`PlayerNotifier`) para monitorar URL atual, estado de carregamento, play/pause e progresso.
-- [ ] **T7.2. Tela de Player Integrado (Vídeo & Áudio Online)** `[Spec: Seção 4 - R7]`
+- [x] **T7.2. Tela de Player Integrado (Vídeo & Áudio Online)** `[Spec: Seção 4 - R7]`
   - Implementar o visualizador usando `youtube_player_flutter` integrado na tela para carregar vídeos do YouTube online.
-- [ ] **T7.3. Suporte a Reprodução de Arquivos Locais (Offline)** `[Spec: Seção 4 - R7]`
+- [x] **T7.3. Suporte a Reprodução de Arquivos Locais (Offline)** `[Spec: Seção 4 - R7]`
   - Configurar carregamento de arquivos salvos em disco usando `chewie` (vídeos) e `just_audio` (músicas).
-- [ ] **T7.4. Tela de Playlist e Lote** `[Spec: Seção 4 - R8]`
+- [x] **T7.4. Tela de Playlist e Lote** `[Spec: Seção 4 - R8]`
   - Criar interface para renderizar listagens de playlists e lotes de links com opção de baixar todos de forma massiva e interagir com itens individuais.
