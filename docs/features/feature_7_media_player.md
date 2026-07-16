@@ -41,33 +41,33 @@ Também deve fornecer uma tela de listagem de playlists/lotes de URLs para naveg
 
 ## 📋 Lista de Tarefas (Subtasks)
 
-- [ ] **T7.1. Implementar Gerenciamento de Estado do Player (`PlayerNotifier`)**
+- [x] **T7.1. Implementar Gerenciamento de Estado do Player (`PlayerNotifier`)**
   - Criar `lib/features/media_player/presentation/providers/player_provider.dart`:
     - Estado contendo: `currentVideoId`, `isPlaying`, `isOnline`, `duration`, `position`, `playbackType` (video/audio).
     - Métodos para Play, Pause, Seek e carregamento de mídia.
-- [ ] **T7.2. Criar Componente de Player Online (YouTube)**
+- [x] **T7.2. Criar Componente de Player Online (YouTube)**
   - Implementar em `lib/features/media_player/presentation/widgets/online_youtube_player.dart`:
     - Instanciar `YoutubePlayerController`.
     - Renderizar o widget `YoutubePlayer` com layout customizado (ocultar barras desnecessárias do YouTube, manter controles elegantes do app).
-- [ ] **T7.3. Criar Componente de Player Offline (Local)**
+- [x] **T7.3. Criar Componente de Player Offline (Local)**
   - Implementar em `lib/features/media_player/presentation/widgets/offline_media_player.dart`:
     - Para vídeo: Inicializar `VideoPlayerController.file` e vinculá-lo ao `ChewieController` para controles de tela cheia, velocidade e legenda (se houver).
     - Para áudio: Carregar arquivo local no `just_audio` e exibir uma bela tela de capa de álbum (utilizando a miniatura/thumbnail salva no banco).
-- [ ] **T7.4. Desenhar Tela Principal `MediaPlayerPage`**
+- [x] **T7.4. Desenhar Tela Principal `MediaPlayerPage`**
   - Implementar em `lib/features/media_player/presentation/pages/media_player_page.dart`:
     - Player no topo (Online ou Offline dependendo do contexto).
     - Seção inferior com título do vídeo, nome do canal, descrição sanfonada (collapse/expand).
     - Botão destacado "Configurar Download" (se online) que abre as opções de download (formato, qualidade, subpasta).
-- [ ] **T7.5. Desenhar Tela `PlaylistDetailsPage`**
+- [x] **T7.5. Desenhar Tela `PlaylistDetailsPage`**
   - Implementar em `lib/features/media_player/presentation/pages/playlist_details_page.dart`:
     - Cabeçalho com informações da playlist (título, autor, miniatura).
     - Lista de faixas com thumbnail e duração.
     - Clicar em qualquer card de faixa abre a `MediaPlayerPage` correspondente para reproduzir online.
     - Botão flutuante ou fixo "Baixar Playlist" que passa a lista inteira de tarefas para o setup de download.
-- [ ] **T7.6. Painel de Fila de Reprodução (Queue & Autoplay)**
+- [x] **T7.6. Painel de Fila de Reprodução (Queue & Autoplay)**
   - Implementar transição automática para a próxima faixa no `PlayerNotifier`.
   - Integrar os botões visuais de "Anterior" e "Próximo" no painel de controle do player.
   - Criar um bottom sheet deslizante (`QueueBottomSheet`) exibindo a listagem das faixas da fila atual permitindo a seleção manual.
-- [ ] **T7.7. Integração de Vídeos Relacionados (Infinite Navigation)**
+- [x] **T7.7. Integração de Vídeos Relacionados (Infinite Navigation)**
   - Fazer chamada da API `youtubeExplode.videos.getRelated(video)` no `ExploreRepository`.
   - Desenhar seção de recomendados abaixo do player principal e atualizar dinamicamente o estado ao tocar em qualquer item da lista.

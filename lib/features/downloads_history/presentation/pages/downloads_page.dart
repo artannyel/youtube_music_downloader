@@ -6,6 +6,8 @@ import '../../../downloader_engine/presentation/providers/download_queue_provide
 import '../../data/models/download_task.dart';
 import '../providers/history_providers.dart';
 import '../../data/repositories/downloads_history_repository_impl.dart';
+import 'package:go_router/go_router.dart';
+import '../../../media_player/presentation/providers/player_provider.dart';
 
 class DownloadsPage extends ConsumerStatefulWidget {
   const DownloadsPage({super.key});
@@ -436,7 +438,28 @@ class _CompletedDownloadsTab extends ConsumerWidget {
                   children: [
                     IconButton(
                       icon: Icon(Icons.play_circle_fill, color: theme.colorScheme.primary, size: 28),
-                      tooltip: 'Reproduzir / Abrir arquivo',
+                      tooltip: 'Reproduzir no app',
+                      onPressed: () {
+                        ref.read(playerProvider.notifier).loadMedia(
+                          PlayerMediaItem(
+                            id: task.youtubeId,
+                            title: task.title,
+                            artist: 'Artista Local',
+                            thumbnailUrl: 'https://img.youtube.com/vi/${task.youtubeId}/hqdefault.jpg',
+                            url: task.youtubeId,
+                            localPath: task.targetPath,
+                          ),
+                          source: PlaybackSource.offline,
+                          mediaType: task.type == DownloadType.audio
+                              ? PlaybackMediaType.audio
+                              : PlaybackMediaType.video,
+                        );
+                        context.push('/player');
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new, color: Colors.grey),
+                      tooltip: 'Abrir no sistema',
                       onPressed: () => _openFile(context, task.targetPath),
                     ),
                     IconButton(
