@@ -39,7 +39,7 @@ Esta é a lista mestra com as tarefas divididas por funcionalidade. Cada tarefa 
   - Implementar barra de pesquisa e grid/lista moderno de resultados.
 - [x] **T1.5. Paginação de Resultados (Scroll Infinito)** `[Spec: Seção 4 - Feature 1]`
   - Implementar scroll infinito com `ScrollController` e método de carregamento da próxima página no repositório e notifier.
-- [ ] **T1.6. Busca Separada em Abas (Vídeos e Playlists)** `[Spec: Seção 4 - R9]`
+- [x] **T1.6. Busca Separada em Abas (Vídeos e Playlists)** `[Spec: Seção 4 - R9]`
   - Implementar duas abas na busca da tela de exploração ("Vídeos" e "Playlists") buscando e listando cada tipo de forma independente utilizando os filtros da biblioteca `youtube_explode_dart`.
 
 ---
