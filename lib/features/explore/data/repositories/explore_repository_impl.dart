@@ -5,6 +5,8 @@ import '../../domain/repositories/explore_repository.dart';
 class ExploreRepositoryImpl implements ExploreRepository {
   final yt_explode.YoutubeExplode _yt;
   yt_explode.VideoSearchList? _currentSearchList;
+  yt_explode.SearchList? _currentPlaylistSearchList;
+  bool _isSearchingPlaylists = false;
 
   ExploreRepositoryImpl(this._yt);
 
@@ -24,6 +26,7 @@ class ExploreRepositoryImpl implements ExploreRepository {
   @override
   Future<List<YoutubeVideoResult>> searchVideos(String query) async {
     try {
+      _isSearchingPlaylists = false;
       final searchResults = await _yt.search.search(query);
       _currentSearchList = searchResults;
       return _mapResults(searchResults);
@@ -33,15 +36,67 @@ class ExploreRepositoryImpl implements ExploreRepository {
   }
 
   @override
-  Future<List<YoutubeVideoResult>> nextSearchPage() async {
-    if (_currentSearchList == null) return [];
+  Future<List<YoutubeVideoResult>> searchPlaylists(String query) async {
     try {
-      final nextPageResults = await _currentSearchList!.nextPage();
-      _currentSearchList = nextPageResults;
-      if (nextPageResults == null) return [];
-      return _mapResults(nextPageResults);
+      _isSearchingPlaylists = true;
+      final searchResults = await _yt.search.searchContent(
+        query,
+        filter: yt_explode.TypeFilters.playlist,
+      );
+      _currentPlaylistSearchList = searchResults;
+
+      return searchResults
+          .whereType<yt_explode.SearchPlaylist>()
+          .map((pl) {
+            return YoutubeVideoResult(
+              id: pl.id.value,
+              title: pl.title,
+              author: 'YouTube Playlist',
+              thumbnailUrl: pl.thumbnails.isNotEmpty ? pl.thumbnails.first.url.toString() : '',
+              isPlaylist: true,
+              playlistVideoCount: pl.videoCount,
+            );
+          })
+          .toList();
     } catch (e) {
-      throw Exception('Erro ao carregar próxima página: $e');
+      throw Exception('Erro ao buscar playlists: $e');
+    }
+  }
+
+  @override
+  Future<List<YoutubeVideoResult>> nextSearchPage() async {
+    if (_isSearchingPlaylists) {
+      if (_currentPlaylistSearchList == null) return [];
+      try {
+        final nextPageResults = await _currentPlaylistSearchList!.nextPage();
+        _currentPlaylistSearchList = nextPageResults;
+        if (nextPageResults == null) return [];
+        return nextPageResults
+            .whereType<yt_explode.SearchPlaylist>()
+            .map((pl) {
+              return YoutubeVideoResult(
+                id: pl.id.value,
+                title: pl.title,
+                author: 'YouTube Playlist',
+                thumbnailUrl: pl.thumbnails.isNotEmpty ? pl.thumbnails.first.url.toString() : '',
+                isPlaylist: true,
+                playlistVideoCount: pl.videoCount,
+              );
+            })
+            .toList();
+      } catch (e) {
+        throw Exception('Erro ao carregar próxima página de playlists: $e');
+      }
+    } else {
+      if (_currentSearchList == null) return [];
+      try {
+        final nextPageResults = await _currentSearchList!.nextPage();
+        _currentSearchList = nextPageResults;
+        if (nextPageResults == null) return [];
+        return _mapResults(nextPageResults);
+      } catch (e) {
+        throw Exception('Erro ao carregar próxima página: $e');
+      }
     }
   }
 

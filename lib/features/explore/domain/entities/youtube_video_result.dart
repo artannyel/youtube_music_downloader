@@ -5,6 +5,8 @@ class YoutubeVideoResult {
   final Duration? duration;
   final String thumbnailUrl;
   final int? viewCount;
+  final bool isPlaylist;
+  final int? playlistVideoCount;
 
   const YoutubeVideoResult({
     required this.id,
@@ -13,6 +15,8 @@ class YoutubeVideoResult {
     this.duration,
     required this.thumbnailUrl,
     this.viewCount,
+    this.isPlaylist = false,
+    this.playlistVideoCount,
   });
 
   // Métodos úteis auxiliares de comparação e exibição

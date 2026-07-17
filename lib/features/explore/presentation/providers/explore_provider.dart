@@ -60,14 +60,14 @@ class ExploreState {
   }
 }
 
-// Notifier para gerenciar a paginação e o estado de busca de vídeos
+// Notifier para gerenciar a paginação e o estado de busca de vídeos e playlists
 class ExploreSearchNotifier extends StateNotifier<ExploreState> {
   final ExploreRepository _repository;
 
   ExploreSearchNotifier(this._repository) : super(const ExploreState.initial());
 
   // Inicia uma nova busca
-  Future<void> search(String query) async {
+  Future<void> search(String query, {bool isPlaylist = false}) async {
     if (query.trim().isEmpty) {
       state = const ExploreState.initial();
       return;
@@ -81,7 +81,9 @@ class ExploreSearchNotifier extends StateNotifier<ExploreState> {
     );
 
     try {
-      final results = await _repository.searchVideos(query);
+      final results = isPlaylist
+          ? await _repository.searchPlaylists(query)
+          : await _repository.searchVideos(query);
       state = state.copyWith(
         isLoading: false,
         results: results,
@@ -119,6 +121,12 @@ class ExploreSearchNotifier extends StateNotifier<ExploreState> {
 
 // Provider global para acessar a busca de vídeos
 final exploreSearchProvider = StateNotifierProvider<ExploreSearchNotifier, ExploreState>((ref) {
+  final repository = ref.watch(exploreRepositoryProvider);
+  return ExploreSearchNotifier(repository);
+});
+
+// Provider global para acessar a busca de playlists
+final explorePlaylistSearchProvider = StateNotifierProvider<ExploreSearchNotifier, ExploreState>((ref) {
   final repository = ref.watch(exploreRepositoryProvider);
   return ExploreSearchNotifier(repository);
 });

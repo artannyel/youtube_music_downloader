@@ -16,28 +16,17 @@ class ExplorePage extends ConsumerStatefulWidget {
 class _ExplorePageState extends ConsumerState<ExplorePage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    // Dispara a busca da próxima página quando o usuário estiver a 200 pixels do final
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      ref.read(exploreSearchProvider.notifier).loadMore();
-    }
   }
 
   void _triggerSearch() {
@@ -72,7 +61,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     }
 
     // 3. Caso contrário, faz pesquisa padrão por termo de busca
-    ref.read(exploreSearchProvider.notifier).search(query);
+    ref.read(exploreSearchProvider.notifier).search(query, isPlaylist: false);
+    ref.read(explorePlaylistSearchProvider.notifier).search(query, isPlaylist: true);
   }
 
   String _formatDuration(Duration? duration) {
@@ -99,83 +89,140 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     final searchState = ref.watch(exploreSearchProvider);
+    final playlistSearchState = ref.watch(explorePlaylistSearchProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Explorar',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+    // Determina se há alguma pesquisa ativa para exibir as abas
+    final isSearchActive = _searchController.text.trim().isNotEmpty &&
+        (searchState.results.isNotEmpty ||
+            playlistSearchState.results.isNotEmpty ||
+            searchState.isLoading ||
+            playlistSearchState.isLoading ||
+            searchState.errorMessage != null ||
+            playlistSearchState.errorMessage != null);
+
+    Widget mainContent;
+    if (!isSearchActive) {
+      mainContent = _buildEmptyState(theme);
+    } else {
+      mainContent = Column(
+        children: [
+          TabBar(
+            indicatorColor: theme.colorScheme.primary,
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: theme.colorScheme.outline,
+            tabs: const [
+              Tab(icon: Icon(Icons.video_library_rounded), text: 'Vídeos'),
+              Tab(icon: Icon(Icons.featured_play_list_rounded), text: 'Playlists'),
+            ],
           ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.link, color: Colors.white),
-            tooltip: 'Colar Link(s) ou Playlist',
-            onPressed: () => _showPasteLinkDialog(context),
+          const SizedBox(height: 12),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildBody(searchState, theme, isPlaylist: false),
+                _buildBody(playlistSearchState, theme, isPlaylist: true),
+              ],
+            ),
           ),
         ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            // Barra de Pesquisa Moderna
-            TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _triggerSearch(),
-              decoration: InputDecoration(
-                hintText: 'Pesquise músicas ou vídeos...',
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white70),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                          });
-                        },
-                      )
-                    : null,
-              ),
-              onChanged: (text) {
-                setState(() {});
-              },
+      );
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Explorar',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 16),
-            
-            // Corpo Principal da Tela
-            Expanded(
-              child: _buildBody(searchState, theme),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.link, color: Colors.white),
+              tooltip: 'Colar Link(s) ou Playlist',
+              onPressed: () => _showPasteLinkDialog(context),
             ),
           ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              // Barra de Pesquisa Moderna
+              TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _triggerSearch(),
+                decoration: InputDecoration(
+                  hintText: 'Pesquise músicas ou vídeos...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white70),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                            });
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (text) {
+                  setState(() {});
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Corpo Principal da Tela
+              Expanded(
+                child: mainContent,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBody(ExploreState state, ThemeData theme) {
+  Widget _buildBody(ExploreState state, ThemeData theme, {required bool isPlaylist}) {
     if (state.isLoading) {
       return _buildShimmerLoading();
     }
     
     if (state.errorMessage != null && state.results.isEmpty) {
-      return _buildErrorState(state.errorMessage!, theme);
+      return _buildErrorState(state.errorMessage!, theme, isPlaylist: isPlaylist);
     }
     
     if (state.results.isEmpty) {
-      return _buildEmptyState(theme);
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isPlaylist ? Icons.featured_play_list_outlined : Icons.video_library_outlined,
+              size: 64,
+              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isPlaylist ? 'Nenhuma playlist encontrada' : 'Nenhum vídeo encontrado',
+              style: TextStyle(color: theme.colorScheme.outline),
+            ),
+          ],
+        ),
+      );
     }
     
-    return _buildResultsList(state, theme);
+    return _buildResultsList(state, theme, isPlaylist: isPlaylist);
   }
 
   Widget _buildEmptyState(ThemeData theme) {
@@ -221,7 +268,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  Widget _buildErrorState(String error, ThemeData theme) {
+  Widget _buildErrorState(String error, ThemeData theme, {required bool isPlaylist}) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -254,167 +301,215 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  Widget _buildResultsList(ExploreState state, ThemeData theme) {
+  Widget _buildResultsList(ExploreState state, ThemeData theme, {required bool isPlaylist}) {
     final results = state.results;
     
-    return ListView.builder(
-      controller: _scrollController,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 24),
-      // Aumenta o tamanho em 1 se estiver carregando mais ou se tiver erro ao carregar mais
-      itemCount: results.length + (state.isLoadingMore || state.errorMessage != null ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == results.length) {
-          if (state.isLoadingMore) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24.0),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+          if (isPlaylist) {
+            ref.read(explorePlaylistSearchProvider.notifier).loadMore();
+          } else {
+            ref.read(exploreSearchProvider.notifier).loadMore();
           }
-          if (state.errorMessage != null) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Column(
-                children: [
-                  Text(
-                    'Erro ao carregar mais resultados.',
-                    style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => ref.read(exploreSearchProvider.notifier).loadMore(),
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Tentar carregar mais'),
-                  ),
-                ],
-              ),
-            );
-          }
-          return const SizedBox.shrink();
         }
-
-        final YoutubeVideoResult video = results[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: InkWell(
-            onTap: () {
-              ref.read(playerProvider.notifier).loadMedia(
-                PlayerMediaItem(
-                  id: video.id,
-                  title: video.title,
-                  artist: video.author,
-                  thumbnailUrl: video.thumbnailUrl,
-                  url: 'https://youtube.com/watch?v=${video.id}',
+        return false;
+      },
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: results.length + (state.isLoadingMore || state.errorMessage != null ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == results.length) {
+            if (state.isLoadingMore) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24.0),
+                child: Center(
+                  child: CircularProgressIndicator(),
                 ),
-                source: PlaybackSource.online,
-                mediaType: PlaybackMediaType.video,
               );
-              context.push('/player');
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Card(
-              margin: EdgeInsets.zero,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Capa do Vídeo com duração
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: Image.network(
-                            video.thumbnailUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              child: const Icon(Icons.broken_image, size: 50),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (video.duration != null)
-                        Positioned(
-                          bottom: 12,
-                          right: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.75),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              _formatDuration(video.duration),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+            }
+            if (state.errorMessage != null) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Erro ao carregar mais resultados.',
+                      style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (isPlaylist) {
+                          ref.read(explorePlaylistSearchProvider.notifier).loadMore();
+                        } else {
+                          ref.read(exploreSearchProvider.notifier).loadMore();
+                        }
+                      },
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Tentar carregar mais'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }
+
+          final YoutubeVideoResult video = results[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: InkWell(
+              onTap: () {
+                if (isPlaylist) {
+                  context.push('/playlist', extra: video.id);
+                } else {
+                  ref.read(playerProvider.notifier).loadMedia(
+                    PlayerMediaItem(
+                      id: video.id,
+                      title: video.title,
+                      artist: video.author,
+                      thumbnailUrl: video.thumbnailUrl,
+                      url: 'https://youtube.com/watch?v=${video.id}',
+                    ),
+                    source: PlaybackSource.online,
+                    mediaType: PlaybackMediaType.video,
+                  );
+                  context.push('/player');
+                }
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Capa do Vídeo com duração ou quantidade de faixas
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: Image.network(
+                              video.thumbnailUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: theme.colorScheme.surfaceContainerHighest,
+                                child: const Icon(Icons.broken_image, size: 50),
                               ),
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                  // Detalhes da Mídia
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.15),
-                          radius: 18,
-                          child: Text(
-                            video.author.isNotEmpty ? video.author[0].toUpperCase() : 'Y',
-                            style: TextStyle(
-                              color: theme.colorScheme.secondary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Informações escritas
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                video.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.25,
+                        if (!isPlaylist && video.duration != null)
+                          Positioned(
+                            bottom: 12,
+                            right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                _formatDuration(video.duration),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
+                            ),
+                          ),
+                        if (isPlaylist && video.playlistVideoCount != null)
+                          Positioned(
+                            bottom: 12,
+                            right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${video.author} • ${_formatViews(video.viewCount)}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall,
+                                  const Icon(Icons.playlist_play_rounded, color: Colors.white, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${video.playlistVideoCount} faixas',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
-                  ),
-                ],
+                    // Detalhes da Mídia
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.15),
+                            radius: 18,
+                            child: Text(
+                              isPlaylist ? 'PL' : (video.author.isNotEmpty ? video.author[0].toUpperCase() : 'Y'),
+                              style: TextStyle(
+                                color: theme.colorScheme.secondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  video.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.25,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        isPlaylist
+                                            ? 'Playlist do YouTube'
+                                            : '${video.author} • ${_formatViews(video.viewCount)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
