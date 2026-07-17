@@ -54,4 +54,8 @@ Permitir a busca de vídeos e músicas do YouTube utilizando a API pública do `
   - Atualizar repositório para expor `nextSearchPage()`.
   - Atualizar notifier para controlar `ExploreState` paginado.
   - Implementar `ScrollController` e indicador de carregamento inferior na UI.
+- [ ] **T1.6. Busca Separada em Abas (Vídeos e Playlists)**
+  - Adicionar suporte a buscas de playlists no repositório (`searchPlaylists`).
+  - Implementar duas abas de busca ("Vídeos" e "Playlists") controladas por um `TabController`.
+  - Integrar exibição e navegação dos cards de playlist apontando para a rota `/playlist`.
 

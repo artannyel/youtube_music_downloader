@@ -142,6 +142,11 @@ O aplicativo utilizará uma paleta de cores moderna e clean no modo escuro (Dark
   - Disponibiliza um botão de ação rápida "Baixar Tudo" que abre a folha de opções de download para todos os itens.
   - Para lote (múltiplos links colados manualmente), funciona como uma lista temporária personalizável.
 
+### R9. Abas de Busca no Explore (Vídeos e Playlists)
+- Ao realizar uma pesquisa textual na aba "Explorar", o aplicativo deve disponibilizar duas abas de resultados:
+  - **Vídeos**: Exibe resultados filtrados do tipo vídeo (`TypeFilters.video`). Selecionar um vídeo carrega a tela do Player em modo online.
+  - **Playlists**: Exibe resultados filtrados do tipo playlist (`TypeFilters.playlist`). Selecionar uma playlist redireciona o usuário para a tela de listagem de playlist correspondente.
+
 ---
 
 ## 5. Estrutura dos Modelos Isar
