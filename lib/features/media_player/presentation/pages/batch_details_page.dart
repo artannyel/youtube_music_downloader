@@ -2,12 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/player_provider.dart';
-import '../providers/playlist_provider.dart';
+import '../../../../features/download_setup/presentation/providers/download_setup_provider.dart';
+import '../../../../features/download_setup/domain/entities/media_metadata.dart';
+import '../../../../features/downloader_engine/presentation/widgets/batch_download_sheet.dart';
 
-class PlaylistDetailsPage extends ConsumerWidget {
-  final String playlistId;
+/// Provider que busca os metadados de múltiplos links em paralelo,
+/// tolerando erros individuais (pula links com falha/inválidos).
+final batchDetailsMetadataProvider = FutureProvider.family<List<MediaMetadata>, List<String>>((ref, urls) async {
+  final repository = ref.watch(downloadSetupRepositoryProvider);
+  final List<MediaMetadata> metadataList = [];
 
-  const PlaylistDetailsPage({super.key, required this.playlistId});
+  for (final url in urls) {
+    try {
+      final meta = await repository.fetchMetadata(url);
+      metadataList.add(meta);
+    } catch (_) {
+      // Ignora e continua para os outros links
+    }
+  }
+
+  return metadataList;
+});
+
+class BatchDetailsPage extends ConsumerWidget {
+  final List<String> urls;
+
+  const BatchDetailsPage({super.key, required this.urls});
 
   String _formatDuration(Duration? duration) {
     if (duration == null) return '--:--';
@@ -123,54 +143,73 @@ class PlaylistDetailsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    if (playlistId.isEmpty) {
+    if (urls.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Playlist')),
+        appBar: AppBar(title: const Text('Fila em Lote')),
         body: const Center(
-          child: Text('Identificador de playlist inválido.'),
+          child: Text('Nenhum link fornecido.'),
         ),
       );
     }
 
-    final playlistAsync = ref.watch(playlistDetailsProvider(playlistId));
+    final metadataAsync = ref.watch(batchDetailsMetadataProvider(urls));
 
     return Scaffold(
-      body: playlistAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Scaffold(
-          appBar: AppBar(title: const Text('Playlist')),
-          body: Center(child: Text('Erro ao carregar playlist: $err')),
+      body: metadataAsync.when(
+        loading: () => const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Obtendo informações dos links...',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
         ),
-        data: (data) {
-          final metadata = data.metadata;
-          final videos = data.videos;
-          final thumbnailUrl = metadata.thumbnails.mediumResUrl;
+        error: (err, stack) => Scaffold(
+          appBar: AppBar(title: const Text('Fila em Lote')),
+          body: Center(child: Text('Erro ao carregar detalhes: $err')),
+        ),
+        data: (metaList) {
+          if (metaList.isEmpty) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Fila em Lote')),
+              body: const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Text(
+                    'Não foi possível obter informações de nenhum dos links inseridos. Verifique a conexão ou os links.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            );
+          }
 
-          // Mapeia os vídeos do youtube_explode para PlayerMediaItem
-          final mediaItems = videos.map((video) {
+          // Mapeia os metadados para PlayerMediaItem
+          final mediaItems = metaList.map((meta) {
             return PlayerMediaItem(
-              id: video.id.value,
-              title: video.title,
-              artist: video.author,
-              thumbnailUrl: video.thumbnails.mediumResUrl,
-              url: video.url,
+              id: meta.id,
+              title: meta.title,
+              artist: meta.author,
+              thumbnailUrl: meta.thumbnailUrl,
+              url: 'https://youtube.com/watch?v=${meta.id}',
             );
           }).toList();
 
           return CustomScrollView(
             slivers: [
-              // -------------------------------------------------------------
-              // 1. CABEÇALHO SLIVER COM THUMBNAIL E DETALHES
-              // -------------------------------------------------------------
+              // 1. App Bar Sliver com efeito gradiente premium
               SliverAppBar(
-                expandedHeight: 280,
+                expandedHeight: 220,
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    metadata.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                  title: const Text(
+                    'Download em Lote',
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       shadows: [Shadow(blurRadius: 10, color: Colors.black54)],
@@ -179,21 +218,14 @@ class PlaylistDetailsPage extends ConsumerWidget {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        thumbnailUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: theme.colorScheme.primaryContainer,
-                          child: const Center(
-                            child: Icon(
-                              Icons.music_note_rounded,
-                              size: 80,
-                              color: Colors.white24,
-                            ),
+                      if (metaList.isNotEmpty)
+                        Image.network(
+                          metaList.first.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: theme.colorScheme.primaryContainer,
                           ),
                         ),
-                      ),
-                      // Overlay escuro com gradiente
                       Container(
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
@@ -212,19 +244,11 @@ class PlaylistDetailsPage extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              metadata.author,
-                              style: TextStyle(
+                              '${metaList.length} faixas encontradas',
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${videos.length} faixas',
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -235,9 +259,7 @@ class PlaylistDetailsPage extends ConsumerWidget {
                 ),
               ),
 
-              // -------------------------------------------------------------
-              // 2. BOTÃO BULK DOWNLOAD DE PLAYLIST & OPÇÕES DE PLAYLIST
-              // -------------------------------------------------------------
+              // 2. Botão Bulk Download e Opções de Reprodução
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -257,7 +279,8 @@ class PlaylistDetailsPage extends ConsumerWidget {
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         onPressed: () {
-                          context.push('/download-setup', extra: metadata.url);
+                          // Abre o bottom sheet de configuração em lote
+                          BatchDownloadSheet.show(context, urls);
                         },
                       ),
                       const SizedBox(height: 12),
@@ -315,13 +338,11 @@ class PlaylistDetailsPage extends ConsumerWidget {
                 ),
               ),
 
-              // -------------------------------------------------------------
-              // 3. LISTAGEM DE FAIXAS DA PLAYLIST
-              // -------------------------------------------------------------
+              // 3. Lista dos itens colados
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final video = videos[index];
+                    final meta = metaList[index];
                     final item = mediaItems[index];
 
                     return Card(
@@ -341,7 +362,7 @@ class PlaylistDetailsPage extends ConsumerWidget {
                           leading: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              video.thumbnails.mediumResUrl,
+                              meta.thumbnailUrl,
                               width: 60,
                               height: 60,
                               fit: BoxFit.cover,
@@ -354,7 +375,7 @@ class PlaylistDetailsPage extends ConsumerWidget {
                             ),
                           ),
                           title: Text(
-                            video.title,
+                            meta.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -362,7 +383,7 @@ class PlaylistDetailsPage extends ConsumerWidget {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4.0),
                             child: Text(
-                              '${video.author} • ${_formatDuration(video.duration)}',
+                              '${meta.author} • ${_formatDuration(meta.duration)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
@@ -383,7 +404,7 @@ class PlaylistDetailsPage extends ConsumerWidget {
                       ),
                     );
                   },
-                  childCount: videos.length,
+                  childCount: metaList.length,
                 ),
               ),
             ],

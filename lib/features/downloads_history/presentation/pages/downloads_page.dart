@@ -439,15 +439,83 @@ class _CompletedDownloadsTab extends ConsumerWidget {
                     IconButton(
                       icon: Icon(Icons.play_circle_fill, color: theme.colorScheme.primary, size: 28),
                       tooltip: 'Reproduzir no app',
-                      onPressed: () {
+                      onPressed: () async {
+                        // Resolve o caminho real do arquivo.
+                        // Registros antigos podem ter o template %(title)s.%(ext)s
+                        // em vez do caminho concreto — nesse caso buscamos o arquivo
+                        // mais recente no diretório de saída.
+                        String? resolvedPath = task.targetPath;
+
+                        final pathHasTemplate =
+                            resolvedPath.contains('%') ||
+                            !await File(resolvedPath).exists();
+
+                        if (pathHasTemplate) {
+                          // Extrai o diretório pai do caminho armazenado
+                          final lastSlash = resolvedPath.lastIndexOf('/');
+                          final outputDir = lastSlash > 0
+                              ? resolvedPath.substring(0, lastSlash)
+                              : resolvedPath;
+
+                          final isAudio =
+                              task.type == DownloadType.audio;
+                          final extensions = isAudio
+                              ? ['mp3', 'm4a', 'opus', 'ogg', 'aac']
+                              : ['mp4', 'mkv', 'webm', 'avi', 'mov'];
+
+                          try {
+                            final dir = Directory(outputDir);
+                            if (await dir.exists()) {
+                              final files = await dir
+                                  .list(recursive: false)
+                                  .where((e) => e is File)
+                                  .cast<File>()
+                                  .where((f) {
+                                    final ext = f.path
+                                        .split('.')
+                                        .last
+                                        .toLowerCase();
+                                    return extensions.contains(ext);
+                                  })
+                                  .toList();
+
+                              if (files.isNotEmpty) {
+                                final stats = await Future.wait(
+                                  files.map(
+                                    (f) async =>
+                                        MapEntry(f, await f.lastModified()),
+                                  ),
+                                );
+                                stats.sort(
+                                  (a, b) => b.value.compareTo(a.value),
+                                );
+                                resolvedPath = stats.first.key.path;
+                              }
+                            }
+                          } catch (_) {}
+                        }
+
+                        // Atualiza o banco com o caminho correto para futuras reproduções
+                        if (resolvedPath != task.targetPath) {
+                          await ref
+                              .read(downloadsHistoryRepositoryProvider)
+                              .updateTaskStatus(
+                                task.id,
+                                DownloadStatus.completed,
+                                targetPath: resolvedPath,
+                              );
+                        }
+
+                        if (!context.mounted) return;
                         ref.read(playerProvider.notifier).loadMedia(
                           PlayerMediaItem(
                             id: task.youtubeId,
                             title: task.title,
                             artist: 'Artista Local',
-                            thumbnailUrl: 'https://img.youtube.com/vi/${task.youtubeId}/hqdefault.jpg',
+                            thumbnailUrl:
+                                'https://img.youtube.com/vi/${task.youtubeId}/hqdefault.jpg',
                             url: task.youtubeId,
-                            localPath: task.targetPath,
+                            localPath: resolvedPath,
                           ),
                           source: PlaybackSource.offline,
                           mediaType: task.type == DownloadType.audio

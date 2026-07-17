@@ -5,10 +5,6 @@ import '../providers/explore_provider.dart';
 import '../../domain/entities/youtube_video_result.dart';
 import '../../../media_player/presentation/providers/player_provider.dart';
 import '../../../download_setup/domain/utils/youtube_url_helper.dart';
-import '../../../download_setup/domain/utils/storage_directory_helper.dart';
-import '../../../downloads_history/data/models/download_task.dart';
-import '../../../downloader_engine/presentation/providers/download_queue_provider.dart';
-import '../../../../core/database/isar_service.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
@@ -53,7 +49,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     // 1. Verifica se são múltiplos links
     final multipleUrls = YoutubeUrlHelper.parseMultipleUrls(query);
     if (multipleUrls.length > 1) {
-      _showBatchDownloadBottomSheet(context, multipleUrls);
+      context.push('/batch-details', extra: multipleUrls);
       return;
     }
 
@@ -553,7 +549,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                     Navigator.pop(context);
 
                     if (parsedUrls.length > 1) {
-                      _showBatchDownloadBottomSheet(context, parsedUrls);
+                      context.push('/batch-details', extra: parsedUrls);
                     } else {
                       final singleUrl = parsedUrls.first;
                       if (YoutubeUrlHelper.isPlaylist(singleUrl)) {
@@ -573,184 +569,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                   child: const Text('Prosseguir'),
                 ),
               ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showBatchDownloadBottomSheet(BuildContext context, List<String> urls) {
-    DownloadType selectedFormat = DownloadType.audio;
-    String selectedQuality = 'Melhor';
-    final TextEditingController subfolderController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Configurar Download em Lote',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Encontrados ${urls.length} links válidos para download.',
-                      style: const TextStyle(fontSize: 14, color: Colors.blueAccent),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Tipo de Mídia',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<DownloadType>(
-                      segments: const [
-                        ButtonSegment(
-                          value: DownloadType.video,
-                          icon: Icon(Icons.video_library),
-                          label: Text('Vídeo (MP4)'),
-                        ),
-                        ButtonSegment(
-                          value: DownloadType.audio,
-                          icon: Icon(Icons.audiotrack),
-                          label: Text('Áudio (MP3)'),
-                        ),
-                      ],
-                      selected: {selectedFormat},
-                      onSelectionChanged: (selection) {
-                        setSheetState(() {
-                          selectedFormat = selection.first;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Qualidade',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      // ignore: deprecated_member_use
-                      value: selectedQuality,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      items: (selectedFormat == DownloadType.video
-                              ? ['Melhor', '1080p', '720p', '480p', '360p']
-                              : ['Melhor', '320kbps', '256kbps', '192kbps', '128kbps'])
-                          .map((q) => DropdownMenuItem(value: q, child: Text(q)))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setSheetState(() {
-                            selectedQuality = val;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Subpasta de Destino (Opcional)',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: subfolderController,
-                      decoration: InputDecoration(
-                        hintText: 'Ex: baixar_lote, sertanejo',
-                        prefixIcon: const Icon(Icons.folder_open),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: () async {
-                        Navigator.pop(context); // Fecha Bottom Sheet
-                        
-                        try {
-                          final targetDir = await StorageDirectoryHelper.getTargetDirectoryPath(
-                            subfolder: subfolderController.text.trim(),
-                            isAudio: selectedFormat == DownloadType.audio,
-                          );
-
-                          final isar = IsarService.instance;
-
-                          await isar.writeTxn(() async {
-                            for (var url in urls) {
-                              final videoId = YoutubeUrlHelper.extractVideoId(url) ?? 'Video';
-                              final task = DownloadTask()
-                                ..youtubeId = videoId
-                                ..title = 'Fila em lote: $videoId'
-                                ..url = url
-                                ..type = selectedFormat
-                                ..requestedQuality = selectedQuality
-                                ..actualQuality = ''
-                                ..targetPath = '$targetDir/${videoId}_batch.${selectedFormat == DownloadType.audio ? "mp3" : "mp4"}'
-                                ..progress = 0.0
-                                ..downloadSpeed = '0 KB/s'
-                                ..eta = ''
-                                ..status = DownloadStatus.pending
-                                ..createdAt = DateTime.now();
-
-                              await isar.downloadTasks.put(task);
-                            }
-                          });
-
-                          ref.read(downloadQueueProvider.notifier).startProcessing();
-
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${urls.length} vídeos adicionados à fila de downloads!'),
-                                backgroundColor: Colors.green.shade700,
-                              ),
-                            );
-                            context.go('/downloads');
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Erro ao enfileirar lote: $e'),
-                                backgroundColor: Colors.red.shade700,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text(
-                        'Iniciar Download em Lote',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             );
           },
         );

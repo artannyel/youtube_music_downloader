@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_explode;
 import '../../domain/entities/media_metadata.dart';
 import '../../domain/repositories/download_setup_repository.dart';
 import '../../domain/utils/youtube_url_helper.dart';
+import '../../../../core/utils/custom_playlist_helper.dart';
 import '../../../explore/domain/entities/youtube_video_result.dart';
+import '../../../../features/downloader_engine/data/services/extractor_service.dart';
 
 class DownloadSetupRepositoryImpl implements DownloadSetupRepository {
   final yt_explode.YoutubeExplode _yt;
@@ -48,9 +51,23 @@ class DownloadSetupRepositoryImpl implements DownloadSetupRepository {
           throw Exception('ID de Playlist inválido.');
         }
 
-        final playlist = await _yt.playlists.get(playlistId);
-        final playlistVideosStream = _yt.playlists.getVideos(playlist.id);
-        final List<yt_explode.Video> videoList = await playlistVideosStream.toList();
+        String playlistTitle = 'Playlist';
+        String playlistAuthor = 'YouTube Playlist';
+        String playlistIdValue = playlistId;
+
+        try {
+          final playlist = await _yt.playlists.get(playlistId);
+          playlistTitle = playlist.title;
+          playlistAuthor = playlist.author.isNotEmpty ? playlist.author : 'YouTube Playlist';
+          playlistIdValue = playlist.id.value;
+        } catch (e) {
+          debugPrint('[DownloadSetupRepository] Falha ao obter detalhes da playlist pelo package (rate limit): $e');
+        }
+
+        // Usa o helper customizado que suporta o novo formato lockupViewModel
+        // retornado pelo YouTube que o package não parseia ainda.
+        final List<yt_explode.Video> videoList =
+            await CustomPlaylistHelper.getPlaylistVideos(playlistId);
 
         final playlistVideos = videoList.map((video) {
           return YoutubeVideoResult(
@@ -64,9 +81,9 @@ class DownloadSetupRepositoryImpl implements DownloadSetupRepository {
         }).toList();
 
         return MediaMetadata(
-          id: playlist.id.value,
-          title: playlist.title,
-          author: playlist.author.isNotEmpty ? playlist.author : 'YouTube Playlist',
+          id: playlistIdValue,
+          title: playlistTitle,
+          author: playlistAuthor,
           thumbnailUrl: playlistVideos.isNotEmpty ? playlistVideos.first.thumbnailUrl : '',
           isPlaylist: true,
           playlistVideos: playlistVideos,
@@ -80,66 +97,128 @@ class DownloadSetupRepositoryImpl implements DownloadSetupRepository {
           throw Exception('ID de Vídeo inválido.');
         }
 
-        final video = await _yt.videos.get(videoId);
-        final manifest = await _yt.videos.streams.getManifest(videoId);
+        yt_explode.Video? video;
+        yt_explode.StreamManifest? manifest;
+        bool useYtdlFallback = false;
 
-        // Extrai qualidades de vídeo únicas
-        final uniqueVideoQualities = <String>{};
-        for (var stream in manifest.videoOnly) {
-          final label = _qualityLabel(stream.videoQuality);
-          if (label != 'Desconhecida') {
-            uniqueVideoQualities.add(label);
+        try {
+          video = await _yt.videos.get(videoId);
+          manifest = await _yt.videos.streams.getManifest(videoId);
+        } catch (e) {
+          useYtdlFallback = true;
+          debugPrint('[DownloadSetupRepository] Fallback para yt-dlp devido ao rate-limit: $e');
+        }
+
+        if (useYtdlFallback) {
+          final info = await ExtractorService.instance.getVideoInfo(normalizedUrl);
+
+          final uniqueVideoQualities = <String>{};
+          final uniqueAudioQualities = <String>{};
+
+          if (info.formats != null) {
+            for (final f in info.formats!) {
+              if (f == null) continue;
+              if (f.height != null && f.height! > 0) {
+                uniqueVideoQualities.add('${f.height}p');
+              }
+              if (f.acodec != null &&
+                  f.acodec != 'none' &&
+                  (f.vcodec == 'none' || f.vcodec == null)) {
+                final kbps = f.tbr != null ? f.tbr!.round() : 128;
+                if (kbps >= 120) {
+                  uniqueAudioQualities.add('Alta Qualidade ($kbps Kbps)');
+                } else {
+                  uniqueAudioQualities.add('Média Qualidade ($kbps Kbps)');
+                }
+              }
+            }
           }
-        }
-        for (var stream in manifest.muxed) {
-          final label = _qualityLabel(stream.videoQuality);
-          if (label != 'Desconhecida') {
-            uniqueVideoQualities.add(label);
+
+          final videoQualities = uniqueVideoQualities.toList()
+            ..sort((a, b) {
+              final aVal = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '0') ?? 0;
+              final bVal = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '0') ?? 0;
+              return bVal.compareTo(aVal);
+            });
+
+          final audioQualities = uniqueAudioQualities.toList()
+            ..sort((a, b) {
+              final aVal = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '0') ?? 0;
+              final bVal = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '0') ?? 0;
+              return bVal.compareTo(aVal);
+            });
+
+          if (audioQualities.isEmpty) {
+            audioQualities.addAll(['Alta Qualidade (AAC)', 'Média Qualidade (AAC)']);
           }
-        }
 
-        // Ordena do maior para o menor
-        final videoQualities = uniqueVideoQualities.toList()
-          ..sort((a, b) {
-            final aVal = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '0') ?? 0;
-            final bVal = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '0') ?? 0;
-            return bVal.compareTo(aVal);
-          });
-
-        // Extrai qualidades de áudio
-        final uniqueAudioQualities = <String>{};
-        for (var stream in manifest.audioOnly) {
-          // Podemos classificar com base no bitrate
-          final kbps = (stream.bitrate.bitsPerSecond / 1000).round();
-          if (kbps >= 120) {
-            uniqueAudioQualities.add('Alta Qualidade ($kbps Kbps)');
-          } else {
-            uniqueAudioQualities.add('Média Qualidade ($kbps Kbps)');
+          return MediaMetadata(
+            id: info.id ?? videoId,
+            title: info.title ?? 'Vídeo do YouTube',
+            author: info.uploader ?? 'Desconhecido',
+            thumbnailUrl: 'https://img.youtube.com/vi/${info.id ?? videoId}/hqdefault.jpg',
+            isPlaylist: false,
+            duration: null,
+            playlistVideos: null,
+            videoQualities: videoQualities.isNotEmpty ? videoQualities : ['720p', '360p'],
+            audioQualities: audioQualities,
+          );
+        } else {
+          // Fluxo normal usando youtube_explode
+          final uniqueVideoQualities = <String>{};
+          for (var stream in manifest!.videoOnly) {
+            final label = _qualityLabel(stream.videoQuality);
+            if (label != 'Desconhecida') {
+              uniqueVideoQualities.add(label);
+            }
           }
+          for (var stream in manifest.muxed) {
+            final label = _qualityLabel(stream.videoQuality);
+            if (label != 'Desconhecida') {
+              uniqueVideoQualities.add(label);
+            }
+          }
+
+          final videoQualities = uniqueVideoQualities.toList()
+            ..sort((a, b) {
+              final aVal = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '0') ?? 0;
+              final bVal = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '0') ?? 0;
+              return bVal.compareTo(aVal);
+            });
+
+          final uniqueAudioQualities = <String>{};
+          for (var stream in manifest.audioOnly) {
+            final kbps = (stream.bitrate.bitsPerSecond / 1000).round();
+            if (kbps >= 120) {
+              uniqueAudioQualities.add('Alta Qualidade ($kbps Kbps)');
+            } else {
+              uniqueAudioQualities.add('Média Qualidade ($kbps Kbps)');
+            }
+          }
+
+          final audioQualities = uniqueAudioQualities.toList()
+            ..sort((a, b) {
+              final aVal = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '0') ?? 0;
+              final bVal = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '0') ?? 0;
+              return bVal.compareTo(aVal);
+            });
+
+          if (audioQualities.isEmpty) {
+            audioQualities.addAll(['Alta Qualidade (AAC)', 'Média Qualidade (AAC)']);
+          }
+
+          return MediaMetadata(
+            id: video!.id.value,
+            title: video.title,
+            author: video.author,
+            thumbnailUrl: video.thumbnails.mediumResUrl,
+            isPlaylist: false,
+            duration: video.duration,
+            playlistVideos: null,
+            videoQualities: videoQualities.isNotEmpty ? videoQualities : ['720p', '360p'],
+            audioQualities: audioQualities,
+          );
         }
-
-        final audioQualities = uniqueAudioQualities.toList()
-          ..sort((a, b) {
-            final aVal = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '0') ?? 0;
-            final bVal = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '0') ?? 0;
-            return bVal.compareTo(aVal); // Do maior kbps para o menor
-          });
-
-        if (audioQualities.isEmpty) {
-          audioQualities.addAll(['Alta Qualidade (AAC)', 'Média Qualidade (AAC)']);
-        }
-
-        return MediaMetadata(
-          id: video.id.value,
-          title: video.title,
-          author: video.author,
-          thumbnailUrl: video.thumbnails.mediumResUrl,
-          isPlaylist: false,
-          duration: video.duration,
-          playlistVideos: null,
-          videoQualities: videoQualities.isNotEmpty ? videoQualities : ['720p', '360p'],
-          audioQualities: audioQualities,
-        );
       }
     } catch (e) {
       throw Exception('Falha ao obter metadados da mídia: $e');

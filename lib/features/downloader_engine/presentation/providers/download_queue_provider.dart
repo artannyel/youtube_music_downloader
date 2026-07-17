@@ -122,6 +122,23 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       : _ytdl = ytdl ?? ExtractorService.instance,
         super(const DownloadQueueState.initial()) {
     _setupStreamListeners();
+    // Retoma downloads interrompidos por restart do app
+    _recoverInterruptedDownloads();
+  }
+
+  /// Reseta tasks presas em "downloading" para "pending" e inicia a fila.
+  Future<void> _recoverInterruptedDownloads() async {
+    try {
+      await _repository.resetInterruptedDownloads();
+      // Se houver tasks pendentes, inicia o processamento automaticamente
+      final nextPending = await _repository.getNextPendingTask();
+      if (nextPending != null) {
+        debugPrint('[DownloadQueue] Retomando fila após restart...');
+        await startProcessing();
+      }
+    } catch (e) {
+      debugPrint('[DownloadQueue] Erro ao recuperar downloads: $e');
+    }
   }
 
   // ---- Setup de Streams do Extractor ------------------------------------
@@ -255,7 +272,14 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
       final result = await _ytdl.download(request);
 
       if (result.status == OperationStatus.success) {
-        await _markTaskCompleted(nextTask, result.outputPath);
+        // Resolve o caminho real do arquivo (o result.outputPath pode conter
+        // o template %(title)s.%(ext)s em vez do arquivo concreto).
+        final resolvedPath = await _resolveActualFilePath(
+          outputDir: request.outputPath,
+          isAudio: nextTask.type == DownloadType.audio,
+          fallbackPath: result.outputPath,
+        );
+        await _markTaskCompleted(nextTask, resolvedPath);
       } else {
         await _markTaskFailed(
           nextTask,
@@ -335,6 +359,57 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
         processId: processId,
         customOptions: customOptions,
       );
+    }
+  }
+
+  /// Resolve o caminho real do arquivo baixado no diretório de saída.
+  ///
+  /// O [result.outputPath] do yt-dlp pode conter o template literal
+  /// `%(title)s.%(ext)s` em vez do arquivo concreto. Este método procura
+  /// o arquivo mais recentemente modificado no diretório com as extensões
+  /// esperadas para o tipo de mídia.
+  Future<String?> _resolveActualFilePath({
+    required String outputDir,
+    required bool isAudio,
+    String? fallbackPath,
+  }) async {
+    // Se o fallbackPath já é um arquivo real e existe, retorna ele.
+    if (fallbackPath != null &&
+        !fallbackPath.contains('%') &&
+        await File(fallbackPath).exists()) {
+      return fallbackPath;
+    }
+
+    // Extensões esperadas para cada tipo de mídia
+    final extensions = isAudio
+        ? ['mp3', 'm4a', 'opus', 'ogg', 'webm', 'aac']
+        : ['mp4', 'mkv', 'webm', 'avi', 'mov'];
+
+    try {
+      final dir = Directory(outputDir);
+      if (!await dir.exists()) return fallbackPath;
+
+      final files = await dir
+          .list(recursive: false)
+          .where((e) => e is File)
+          .cast<File>()
+          .where((f) {
+            final ext = f.path.split('.').last.toLowerCase();
+            return extensions.contains(ext);
+          })
+          .toList();
+
+      if (files.isEmpty) return fallbackPath;
+
+      // Ordena pelo mais recentemente modificado e pega o primeiro
+      final stats = await Future.wait(
+        files.map((f) async => MapEntry(f, await f.lastModified())),
+      );
+      stats.sort((a, b) => b.value.compareTo(a.value));
+      return stats.first.key.path;
+    } catch (e) {
+      debugPrint('[DownloadQueue] Erro ao resolver caminho real: $e');
+      return fallbackPath;
     }
   }
 

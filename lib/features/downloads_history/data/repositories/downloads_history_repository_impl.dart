@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import '../../../../core/database/isar_service.dart';
@@ -85,6 +86,31 @@ class DownloadsHistoryRepositoryImpl implements DownloadsHistoryRepository {
     await _isar.writeTxn(() async {
       await _isar.downloadTasks.delete(id);
     });
+  }
+  @override
+  Future<void> resetInterruptedDownloads() async {
+    // Busca todas as tasks que estavam baixando quando o app foi encerrado
+    final interrupted = await _isar.downloadTasks
+        .filter()
+        .statusEqualTo(DownloadStatus.downloading)
+        .findAll();
+
+    if (interrupted.isEmpty) return;
+
+    await _isar.writeTxn(() async {
+      for (final task in interrupted) {
+        task.status = DownloadStatus.pending;
+        task.progress = 0;
+        task.downloadSpeed = '';
+        task.eta = '';
+        await _isar.downloadTasks.put(task);
+      }
+    });
+
+    debugPrint(
+      '[DownloadsHistory] ${interrupted.length} download(s) interrompido(s) '  
+      'recolocado(s) na fila.',
+    );
   }
 }
 

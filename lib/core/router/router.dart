@@ -6,6 +6,7 @@ import '../../features/downloads_history/presentation/pages/downloads_page.dart'
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/media_player/presentation/pages/media_player_page.dart';
 import '../../features/media_player/presentation/pages/playlist_details_page.dart';
+import '../../features/media_player/presentation/pages/batch_details_page.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -58,6 +59,14 @@ class AppRouter {
           builder: (context, state) {
             final playlistId = state.extra as String?;
             return PlaylistDetailsPage(playlistId: playlistId ?? '');
+          },
+        ),
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/batch-details',
+          builder: (context, state) {
+            final urls = state.extra as List<String>?;
+            return BatchDetailsPage(urls: urls ?? const []);
           },
         ),
       ],

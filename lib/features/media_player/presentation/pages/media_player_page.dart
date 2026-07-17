@@ -64,6 +64,39 @@ class _MediaPlayerPageState extends ConsumerState<MediaPlayerPage> {
       );
     }
 
+    if (state.status == PlaybackStatus.error) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Player')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
+                const SizedBox(height: 16),
+                const Text(
+                  'Erro ao reproduzir',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  state.errorMessage ?? 'Erro desconhecido.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.pop(),
+                  child: const Text('Voltar'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final item = state.currentItem!;
     final isOnline = state.source == PlaybackSource.online;
     final isAudio = state.mediaType == PlaybackMediaType.audio;
@@ -82,7 +115,6 @@ class _MediaPlayerPageState extends ConsumerState<MediaPlayerPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            ref.read(playerProvider.notifier).stop();
             context.pop();
           },
         ),
@@ -117,11 +149,13 @@ class _MediaPlayerPageState extends ConsumerState<MediaPlayerPage> {
           else if (isOnline && !isAudio)
             // Player de Vídeo Online (YouTube)
             OnlineYoutubePlayer(
+              key: ValueKey(item.id),
               controller: ref.read(playerProvider.notifier).youtubePlayerController!,
             )
           else
             // Player de Vídeo/Áudio Offline ou Áudio Online
             OfflineMediaPlayer(
+              key: ValueKey(item.id),
               mediaType: state.mediaType,
               item: item,
               chewieController: ref.read(playerProvider.notifier).chewieController,
@@ -195,6 +229,25 @@ class _MediaPlayerPageState extends ConsumerState<MediaPlayerPage> {
                 const SizedBox(width: 16),
                 IconButton(
                   iconSize: 32,
+                  icon: const Icon(Icons.skip_next_rounded),
+                  onPressed: () => ref.read(playerProvider.notifier).playNext(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ] else ...[
+            // Exibe botões de voltar/avançar música para vídeos online
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  iconSize: 36,
+                  icon: const Icon(Icons.skip_previous_rounded),
+                  onPressed: () => ref.read(playerProvider.notifier).playPrevious(),
+                ),
+                const SizedBox(width: 48),
+                IconButton(
+                  iconSize: 36,
                   icon: const Icon(Icons.skip_next_rounded),
                   onPressed: () => ref.read(playerProvider.notifier).playNext(),
                 ),

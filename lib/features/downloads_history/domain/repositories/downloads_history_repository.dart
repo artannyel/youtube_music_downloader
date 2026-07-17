@@ -36,4 +36,8 @@ abstract class DownloadsHistoryRepository {
 
   /// Remove uma tarefa de download pelo ID.
   Future<void> deleteTask(int id);
+
+  /// Redefine para "pending" todas as tarefas que ficaram presas no status
+  /// "downloading" por um restart inesperado do app ou do Flutter.
+  Future<void> resetInterruptedDownloads();
 }

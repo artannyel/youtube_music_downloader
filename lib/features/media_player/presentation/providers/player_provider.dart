@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart' as yt_play;
+import '../../../../features/downloader_engine/data/services/extractor_service.dart';
 
 enum PlaybackStatus { idle, loading, playing, paused, completed, error }
 enum PlaybackSource { online, offline }
@@ -117,7 +117,6 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
   // Streams de áudio
   final List<StreamSubscription<dynamic>> _audioSubs = [];
-  final _ytExplode = YoutubeExplode();
 
   PlayerNotifier() : super(const PlayerState.initial()) {
     _setupAudioListeners();
@@ -189,10 +188,50 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
           }
           await _audioPlayer.setFilePath(item.localPath!);
         } else {
-          // Streaming online do YouTube
-          final manifest = await _ytExplode.videos.streams.getManifest(item.id);
-          final streamInfo = manifest.audioOnly.withHighestBitrate();
-          await _audioPlayer.setUrl(streamInfo.url.toString());
+          // Streaming online: usa yt-dlp para extrair URL do stream de áudio.
+          // O youtube_explode_dart falha com o novo challenge JS do YouTube;
+          // o yt-dlp (via ExtractorService) resolve corretamente.
+          final videoUrl = 'https://www.youtube.com/watch?v=${item.id}';
+          final info = await ExtractorService.instance.getVideoInfoWithOptions(
+            videoUrl,
+            {'--format': 'bestaudio'},
+          );
+
+          // Tenta pegar URL diretamente do formato selecionado
+          String? streamUrl = info.url;
+
+          // Fallback: procura nos formatos o de melhor áudio
+          if ((streamUrl == null || streamUrl.isEmpty) &&
+              info.formats != null &&
+              info.formats!.isNotEmpty) {
+            // Filtra formatos que tenham URL e áudio (vcodec == 'none' = só áudio)
+            final audioFormats = info.formats!
+                .where((f) =>
+                    f != null &&
+                    f.url != null &&
+                    f.url!.isNotEmpty &&
+                    (f.vcodec == 'none' || f.vcodec == null))
+                .toList();
+
+            if (audioFormats.isNotEmpty) {
+              // Pega o de maior taxa de bits
+              audioFormats.sort((a, b) => (b?.tbr ?? 0).compareTo(a?.tbr ?? 0));
+              streamUrl = audioFormats.first!.url;
+            } else {
+              // Usa qualquer formato disponível com URL
+              final any = info.formats!.firstWhere(
+                (f) => f?.url != null && f!.url!.isNotEmpty,
+                orElse: () => null,
+              );
+              streamUrl = any?.url;
+            }
+          }
+
+          if (streamUrl == null || streamUrl.isEmpty) {
+            throw Exception('Não foi possível obter a URL do stream de áudio.');
+          }
+
+          await _audioPlayer.setUrl(streamUrl);
         }
         await _audioPlayer.play();
       } else {
@@ -233,6 +272,9 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
             ),
           );
 
+          // Escuta conclusão do vídeo online do YouTube
+          _ytController!.addListener(_youtubePlayerListener);
+
           state = state.copyWith(
             status: PlaybackStatus.playing,
             duration: Duration.zero, // Gerenciado internamente pelo YoutubePlayerController
@@ -261,6 +303,27 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
     if (value.position >= value.duration && state.status == PlaybackStatus.completed) {
       _videoPlayerController!.removeListener(_videoPlayerListener);
+      playNext();
+    }
+  }
+
+  void _youtubePlayerListener() {
+    if (_ytController == null) return;
+
+    final value = _ytController!.value;
+    final isEnded = value.playerState == yt_play.PlayerState.ended;
+
+    state = state.copyWith(
+      position: value.position,
+      duration: value.metaData.duration,
+      status: isEnded
+          ? PlaybackStatus.completed
+          : (value.isPlaying ? PlaybackStatus.playing : PlaybackStatus.paused),
+    );
+
+    if (isEnded) {
+      debugPrint('[PlayerNotifier] YouTube video ended. Loading next media...');
+      _ytController!.removeListener(_youtubePlayerListener);
       playNext();
     }
   }
@@ -325,6 +388,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
     // Limpa player do YouTube
     if (_ytController != null) {
+      _ytController!.removeListener(_youtubePlayerListener);
       _ytController!.dispose();
       _ytController = null;
     }
@@ -377,7 +441,6 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     _ytController?.dispose();
-    _ytExplode.close();
     super.dispose();
   }
 }
