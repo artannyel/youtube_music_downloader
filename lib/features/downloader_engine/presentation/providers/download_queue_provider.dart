@@ -11,6 +11,7 @@ import '../../../downloads_history/data/repositories/downloads_history_repositor
 import '../../data/services/cookies_service.dart';
 import '../../data/services/extractor_service.dart';
 import '../../domain/utils/quality_format_builder.dart';
+import '../../../../core/utils/media_scanner_helper.dart';
 
 // ---------------------------------------------------------------------------
 // Estado
@@ -429,6 +430,11 @@ class DownloadQueueNotifier extends StateNotifier<DownloadQueueState> {
 
     // Cancela a notificação ativa da bandeja de notificações
     NotificationService.cancelNotification(task.id);
+
+    // Escaneia o arquivo de mídia para indexá-lo no MediaStore do Android
+    if (outputPath != null && outputPath.isNotEmpty) {
+      MediaScannerHelper.scanFile(outputPath);
+    }
 
     final updated = state.taskSnapshots[task.id]?.copyWith(
       progress: 100.0,
